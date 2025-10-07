@@ -1,14 +1,15 @@
-# Manual Cursor CLI
+# Cursor CLI Manual
 
-Direct usage of Cursor CLI for development and testing.
+Direct usage guide for the Cursor AI coding assistant.
 
 ## Overview
 
-Cursor CLI provides:
-- Interactive coding sessions
-- Non-interactive automation
-- Project context awareness
-- Multiple AI models
+Cursor CLI is an AI-powered coding assistant that helps with:
+- **Code Reviews** - Analyze code for issues and improvements
+- **Code Generation** - Create new code and functionality
+- **Debugging** - Find and fix bugs in existing code
+- **Refactoring** - Improve code structure and performance
+- **Documentation** - Generate and update documentation
 
 ## Installation
 
@@ -16,7 +17,7 @@ Cursor CLI provides:
 # Install Cursor CLI
 curl https://cursor.com/install -fsS | bash
 
-# Add to PATH
+# Add to PATH (if needed)
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 
@@ -24,392 +25,298 @@ source ~/.zshrc
 cursor-agent --version
 ```
 
-## Usage
+## Basic Usage
 
 ### Interactive Mode
-
 ```bash
-# Start interactive session
+# Start conversational session
 cursor-agent
 
-# In interactive mode
-> Review the authentication module
-> Generate tests for UserService
+# Example conversation:
+> Review this authentication module for security issues
+> Generate unit tests for the UserService class
 > Refactor the database connection logic
+> Exit
 ```
 
-### Non-Interactive Mode
-
+### Single Commands
 ```bash
-# Single command
-cursor-agent chat "Review src/auth.ts for security issues"
+# Code review
+cursor-agent chat "Review src/auth.ts for security vulnerabilities"
 
-# With project context
-cd /path/to/project && cursor-agent chat "Fix all TypeScript errors"
+# Code generation
+cursor-agent chat "Create a REST API endpoint for user registration"
 
-# With specific model
-cursor-agent chat "Generate API documentation" --model claude-4-opus
+# Bug fixing
+cursor-agent chat "Find and fix the memory leak in UserService.ts"
+
+# Documentation
+cursor-agent chat "Update README.md with recent API changes"
 ```
 
-## Common Commands
+## Common Use Cases
 
-### Code Review
+### Code Reviews
 ```bash
-cursor-agent chat "Review this code for bugs and improvements"
+# Security review
+cursor-agent chat "Review this code for security vulnerabilities and suggest fixes"
+
+# Performance analysis
+cursor-agent chat "Analyze this function for performance issues and optimization opportunities"
+
+# Code quality
+cursor-agent chat "Review this code for best practices and suggest improvements"
 ```
 
-### Refactoring
+### Code Generation
 ```bash
-cursor-agent chat "Refactor this function to follow SOLID principles"
-```
+# New features
+cursor-agent chat "Create a user authentication system with JWT tokens"
 
-### Testing
-```bash
-cursor-agent chat "Generate unit tests for all public methods"
-```
+# API endpoints
+cursor-agent chat "Generate REST API endpoints for a blog application"
 
-### Documentation
-```bash
-cursor-agent chat "Update README.md with recent changes"
+# Utility functions
+cursor-agent chat "Create utility functions for date formatting and validation"
 ```
 
 ### Debugging
 ```bash
-cursor-agent chat "Find and fix the memory leak in this code"
+# Error analysis
+cursor-agent chat "Debug this error: TypeError: Cannot read property 'map' of undefined"
+
+# Bug hunting
+cursor-agent chat "Find the source of the memory leak in this React component"
+
+# Performance issues
+cursor-agent chat "Identify why this function is running slowly"
 ```
 
-## Project Context
-
-Cursor CLI automatically detects:
-- Project structure
-- Dependencies
-- Configuration files
-- Git history
-
-## Configuration
-
+### Refactoring
 ```bash
-# Set default model
-export CURSOR_DEFAULT_MODEL=claude-4-sonnet
+# Modernization
+cursor-agent chat "Refactor this code to use modern JavaScript/TypeScript patterns"
 
-# Set timeout
-export CURSOR_TIMEOUT=300
+# Performance optimization
+cursor-agent chat "Optimize this algorithm for better performance"
 
-# Set project path
-export CURSOR_PROJECT_PATH=/path/to/project
+# Code organization
+cursor-agent chat "Reorganize this file structure following SOLID principles"
 ```
 
-## Custom Commands Integration
+## Advanced Features
 
-Cursor CLI supports custom commands through MCP (Model Context Protocol) servers and custom command definitions.
+### Custom Commands
+Create project-specific commands using MCP (Model Context Protocol):
 
-### MCP Server Integration
-
-Create custom MCP servers for specialized functionality:
-
-**mcp-server.js:**
 ```javascript
-// Custom MCP server for project-specific commands
-const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
-const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-
-class CustomMCPServer {
-  async run() {
-    const server = new Server(
-      {
-        name: 'custom-commands',
-        version: '1.0.0',
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      }
-    );
-
-    // Define custom tools
-    server.setRequestHandler('tools/list', async () => ({
-      tools: [
-        {
-          name: 'run-tests',
-          description: 'Run project test suite',
-          inputSchema: {
-            type: 'object',
-            properties: {},
-          },
-        },
-        {
-          name: 'check-coverage',
-          description: 'Check test coverage',
-          inputSchema: {
-            type: 'object',
-            properties: {},
-          },
-        },
-        {
-          name: 'deploy-preview',
-          description: 'Deploy to preview environment',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              branch: { type: 'string' },
-            },
-          },
-        },
-      ],
-    }));
-
-    server.setRequestHandler('tools/call', async (request) => {
-      const { name, arguments: args } = request.params;
-
-      switch (name) {
-        case 'run-tests':
-          return await this.runTests();
-        case 'check-coverage':
-          return await this.checkCoverage();
-        case 'deploy-preview':
-          return await this.deployPreview(args.branch);
-      }
-    });
-
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-  }
-
-  async runTests() {
-    // Execute test command
-    return { result: 'Tests completed successfully' };
-  }
-
-  async checkCoverage() {
-    // Check test coverage
-    return { result: 'Coverage: 85%' };
-  }
-
-  async deployPreview(branch) {
-    // Deploy to preview environment
-    return { result: `Deployed ${branch} to preview` };
-  }
-}
-```
-
-### Custom Slash Commands
-
-Define custom slash commands in Cursor configuration:
-
-**config/cursor-commands.js:**
-```javascript
-// Custom command definitions
+// config/cursor-commands.js
 module.exports = {
   commands: {
     '/test': {
       description: 'Run project tests',
       execute: async (args) => {
-        const { execSync } = require('child_process');
-        try {
-          const output = execSync('npm test', { encoding: 'utf8' });
-          return `✅ Tests passed:\n${output}`;
-        } catch (error) {
-          return `❌ Tests failed:\n${error.stdout}`;
-        }
+        // Run test suite
+        return 'Tests completed successfully';
       }
     },
-
-    '/coverage': {
-      description: 'Check test coverage',
-      execute: async (args) => {
-        const { execSync } = require('child_process');
-        try {
-          const output = execSync('npm run coverage', { encoding: 'utf8' });
-          return `📊 Coverage report:\n${output}`;
-        } catch (error) {
-          return `❌ Coverage check failed:\n${error.stdout}`;
-        }
-      }
-    },
-
     '/deploy': {
       description: 'Deploy current branch',
       execute: async (args) => {
-        const branch = args[0] || 'main';
-        // Trigger deployment via webhook
-        const response = await fetch('http://localhost:5678/webhook/deploy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ branch })
-        });
-        return `🚀 Deployment triggered for ${branch}`;
-      }
-    },
-
-    '/review': {
-      description: 'AI code review of current changes',
-      execute: async (args) => {
-        // Trigger N8N workflow for code review
-        const response = await fetch('http://localhost:5678/webhook/code-review', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: 'Review recent changes and suggest improvements',
-            projectPath: process.cwd()
-          })
-        });
-        const result = await response.json();
-        return `🔍 Code review completed:\n${result.output}`;
+        // Trigger deployment
+        return 'Deployment initiated';
       }
     }
   }
 };
 ```
 
-### Cursor Configuration
+### Model Selection
+```bash
+# Use specific AI models
+cursor-agent chat "Review code" --model claude-4-opus
+cursor-agent chat "Generate tests" --model gpt-4
+cursor-agent chat "Debug issue" --model claude-4-sonnet
+```
 
-**~/.cursor/config.json:**
+### Project Context
+```bash
+# Set project path
+export CURSOR_PROJECT_PATH=/path/to/project
+
+# Run with project context
+cursor-agent chat "Review this codebase structure"
+```
+
+## Integration with System
+
+### Taskfile Integration
+```bash
+# Via Taskfile (see 01-taskfile.md)
+task cursor -- "Review this code"
+task cursor:review
+task cursor:refactor
+```
+
+### N8N Integration
+```bash
+# Trigger via N8N workflows
+curl -X POST http://localhost:5678/webhook/cursor-trigger \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Review code for security issues"}'
+```
+
+### Development Workflow
+```bash
+# 1. Setup infrastructure
+task setup
+
+# 2. Start development environment
+task serve
+
+# 3. Use Cursor CLI for coding tasks
+cursor-agent chat "Generate API documentation"
+
+# 4. Results integrated into workflows
+# 5. Changes tracked and deployed
+```
+
+## Best Practices
+
+### Prompt Engineering
+**Good Prompts:**
+- ✅ Specific and focused: "Review src/auth.ts for security vulnerabilities"
+- ✅ Include context: "Review this React component for performance issues"
+- ✅ Clear requirements: "Generate unit tests for all public methods"
+
+**Poor Prompts:**
+- ❌ Too vague: "Fix the code"
+- ❌ Too broad: "Review everything"
+- ❌ No context: "Make it better"
+
+### Project Context
+1. **Set project path** for accurate context awareness
+2. **Include relevant files** in prompts when needed
+3. **Specify technology stack** (React, Node.js, Python, etc.)
+4. **Mention dependencies** and constraints
+
+### Error Handling
+1. **Test commands** before automation
+2. **Handle failures gracefully** in automated workflows
+3. **Monitor execution** for timeouts and errors
+4. **Log results** for debugging and analysis
+
+### Performance
+1. **Use appropriate models** for different tasks
+2. **Break large tasks** into smaller, focused requests
+3. **Monitor token usage** and costs
+4. **Cache results** for repeated operations
+
+## Configuration
+
+### Environment Variables
+```bash
+# Set default model
+export CURSOR_DEFAULT_MODEL=claude-4-sonnet
+
+# Set timeout (seconds)
+export CURSOR_TIMEOUT=300
+
+# Set project path
+export CURSOR_PROJECT_PATH=/path/to/project
+
+# Enable debug mode
+export CURSOR_DEBUG=true
+```
+
+### Configuration File
 ```json
+// ~/.cursor/config.json
 {
+  "models": {
+    "default": "claude-4-sonnet",
+    "fast": "claude-4-haiku"
+  },
   "mcp": {
     "servers": {
       "custom-commands": {
         "command": "node",
-        "args": ["/path/to/mcp-server.js"]
+        "args": ["/path/to/custom-commands.js"]
       }
     }
-  },
-  "commands": {
-    "custom": "/path/to/config/cursor-commands.js"
-  },
-  "models": {
-    "default": "claude-4-sonnet",
-    "fast": "claude-4-haiku"
   }
 }
 ```
 
-### Usage with Custom Commands
+## Troubleshooting
 
+### Common Issues
+
+**Command not found:**
 ```bash
-# Use slash commands in interactive mode
-cursor-agent
+# Check PATH
+echo $PATH
+which cursor-agent
 
-# In interactive mode:
-> /test
-> /coverage
-> /deploy feature-branch
-> /review
-
-# Or trigger via N8N workflows
-curl -X POST http://localhost:5678/webhook/code-review \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "/review recent changes"}'
+# Reinstall if needed
+curl https://cursor.com/install -fsS | bash
 ```
 
-## Integration
+**Permission errors:**
+```bash
+# Fix execute permissions
+chmod +x ~/.local/bin/cursor-agent
+```
 
-### With Taskfile
+**Timeout issues:**
+```bash
+# Increase timeout
+export CURSOR_TIMEOUT=600
+
+# Use smaller, focused prompts
+cursor-agent chat "Review just this function"
+```
+
+**Context issues:**
+```bash
+# Set project path explicitly
+export CURSOR_PROJECT_PATH=/path/to/project
+cd /path/to/project && cursor-agent chat "Review this codebase"
+```
+
+## Integration Examples
+
+### With Git Hooks
+```bash
+# Pre-commit hook for code review
+#!/bin/bash
+# .git/hooks/pre-commit
+cursor-agent chat "Review changes for security issues" --input "$(git diff --cached)"
+```
+
+### With CI/CD
 ```yaml
-# Taskfile.yml - Enhanced with custom commands
-tasks:
-  cursor:
-    cmds:
-      - cursor-agent chat "{{ .CLI_ARGS }}"
-
-  test:
-    desc: "Run tests via Cursor command"
-    cmds:
-      - cursor-agent chat "/test"
-
-  deploy:
-    desc: "Deploy via Cursor command"
-    cmds:
-      - cursor-agent chat "/deploy {{ .CLI_ARGS }}"
-
-  review:
-    desc: "Code review via Cursor command"
-    cmds:
-      - cursor-agent chat "/review"
+# GitHub Actions
+- name: AI Code Review
+  run: |
+    cursor-agent chat "Review PR changes for security and quality issues"
 ```
 
-### With N8N Workflows
-
-```json
+### With Development Tools
+```bash
+# VS Code task
 {
-  "name": "Custom Command Workflow",
-  "nodes": [
+  "version": "2.0.0",
+  "tasks": [
     {
-      "parameters": {
-        "command": "cursor-agent chat \"/test\" --project-path \"{{ $json.projectPath }}\"",
-        "executeOnce": true
-      },
-      "name": "Execute Custom Test Command",
-      "type": "n8n-nodes-base.executeCommand"
+      "label": "AI Code Review",
+      "type": "shell",
+      "command": "cursor-agent",
+      "args": ["chat", "Review this code for improvements"],
+      "group": "build"
     }
   ]
 }
 ```
 
-### Advanced Custom Commands
-
-**Database Operations:**
-```javascript
-'/migrate': {
-  description: 'Run database migrations',
-  execute: async () => {
-    // Execute migrations via N8N webhook
-    const response = await fetch('http://localhost:5678/webhook/db-migrate', {
-      method: 'POST'
-    });
-    return '✅ Database migrated successfully';
-  }
-}
-```
-
-**Git Operations:**
-```javascript
-'/commit': {
-  description: 'AI-powered commit message generation',
-  execute: async (args) => {
-    const message = args.join(' ') || 'Auto-generated commit';
-    // Trigger commit workflow
-    return `✅ Committed with message: "${message}"`;
-  }
-}
-```
-
-## Best Practices for Custom Commands
-
-1. **Keep commands focused** - Single responsibility per command
-2. **Handle errors gracefully** - Provide meaningful error messages
-3. **Use async/await** - For non-blocking operations
-4. **Validate inputs** - Check arguments before execution
-5. **Provide feedback** - Clear success/error messages
-6. **Integrate with N8N** - Trigger workflows from commands
-7. **Test thoroughly** - Commands should be reliable
-
-## Integration
-
-### With Taskfile
-```yaml
-# Taskfile.yml
-tasks:
-  cursor:
-    cmds:
-      - cursor-agent chat "{{ .CLI_ARGS }}"
-```
-
-### With N8N
-```bash
-# Execute from N8N
-cursor-agent chat "{{ $json.prompt }}" --project-path "{{ $json.projectPath }}"
-
-# Or trigger custom commands from N8N
-cursor-agent chat "/test"
-```
-
-## Best Practices
-
-1. **Be specific** with prompts
-2. **Provide context** about the project
-3. **Use project-relative paths**
-4. **Test commands** before automation
-5. **Monitor token usage**
-6. **Create reusable custom commands** for common operations
+Cursor CLI provides a powerful AI assistant for all aspects of software development, from code generation and review to debugging and documentation. When integrated with N8N workflows, it becomes a complete automation platform for AI-powered development processes.

@@ -1,160 +1,90 @@
 # Docker Compose Setup
 
-Local development environment for N8N + PostgreSQL.
+Simple, reliable infrastructure for local N8N development.
 
 ## Overview
 
-Simple Docker Compose setup for local development providing:
-- **N8N**: Workflow automation platform (localhost:5678)
-- **PostgreSQL**: Local database storage
-- **Volumes**: Data persistence across restarts
-- **Development**: Hot reload and file watching
+Docker Compose provides a complete local development environment with:
+- **N8N** - Workflow automation platform accessible at http://localhost:5678
+- **PostgreSQL** - Persistent database storage
+- **Volume Management** - Data persistence across restarts
+- **Development Integration** - Hot reload and file watching support
 
-## Complete Docker Compose Configuration
-
-### docker-compose.yml
-
-```yaml
-version: '3.8'
-
-services:
-  n8n:
-    image: n8nio/n8n:latest
-    ports:
-      - "5678:5678"
-    volumes:
-      - ~/.n8n:/home/node/.n8n
-      - ./workflows:/home/node/workflows:ro
-      - ./activities:/home/node/activities:ro
-    environment:
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=password
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_USER=n8n
-      - DB_POSTGRESDB_PASSWORD=password
-      - N8N_LOG_LEVEL=debug
-    depends_on:
-      - postgres
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=n8n
-      - POSTGRES_USER=n8n
-      - POSTGRES_PASSWORD=password
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-    driver: local
-```
-
-
-## Services Configuration
-
-### N8N Service
-
-**Configuration:**
-- **Image**: `n8nio/n8n:latest`
-- **Port**: 5678 → http://localhost:5678
-- **Authentication**: Basic auth (admin/password)
-- **Database**: PostgreSQL connection
-
-**Volumes:**
-- `~/.n8n` → N8N data persistence
-- `./workflows` → Custom workflow definitions
-- `./activities` → Custom activity nodes
-
-### PostgreSQL Service
-
-**Configuration:**
-- **Image**: `postgres:15-alpine`
-- **Port**: 5432 → localhost:5432
-- **Database**: `n8n`
-- **User**: `n8n`
-
-**Volumes:**
-- `postgres_data` → Database persistence
-
-## Environment Configuration
-
-The Docker Compose file uses simple default values - no .env file needed for basic setup:
-
-```yaml
-# Default values in docker-compose.yml
-N8N_BASIC_AUTH_ACTIVE=true
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=password
-DB_TYPE=postgresdb
-DB_POSTGRESDB_HOST=postgres
-DB_POSTGRESDB_DATABASE=n8n
-DB_POSTGRESDB_USER=n8n
-DB_POSTGRESDB_PASSWORD=password
-```
-
-For customization, create a `.env` file:
+## Quick Start
 
 ```bash
-# .env (optional)
-N8N_BASIC_AUTH_PASSWORD=your_password
-POSTGRES_PASSWORD=your_db_password
-N8N_LOG_LEVEL=debug
-```
-
-## Quick Start Commands
-
-### Basic Operations
-
-```bash
-# Start services
+# Start all services
 docker-compose up -d
+
+# View N8N web interface
+open http://localhost:5678
+
+# Check status
+docker-compose ps
 
 # View logs
 docker-compose logs -f
 
-# Stop services
+# Stop everything
 docker-compose down
-
-# Remove everything (including data)
-docker-compose down -v
 ```
 
-### Development Workflow
+## Services
+
+### N8N (Port 5678)
+- **Web Interface**: http://localhost:5678
+- **Authentication**: Basic auth enabled (admin/password)
+- **Database**: Connected to PostgreSQL
+- **Data Storage**: Persistent in `~/.n8n`
+
+### PostgreSQL (Port 5432)
+- **Database**: `n8n` database created automatically
+- **User**: `n8n` with password `password`
+- **Data Storage**: Persistent volume for database files
+
+## Configuration
+
+The setup uses sensible defaults - no additional configuration needed for basic usage:
 
 ```bash
-# Start and view N8N UI
-docker-compose up -d
-open http://localhost:5678
-
-# Access containers
-docker-compose exec n8n sh
-docker-compose exec postgres psql -U n8n -d n8n
-
-# Rebuild after changes
-docker-compose up -d --build
-
-# Restart specific service
-docker-compose restart n8n
+# Default credentials
+N8N_USER=admin
+N8N_PASSWORD=password
+DB_USER=n8n
+DB_PASSWORD=password
 ```
 
-## Development Integration
+For custom configuration, create a `.env` file:
 
-### File Watching and Hot Reload
+```bash
+# .env (optional)
+N8N_PASSWORD=your_secure_password
+DB_PASSWORD=your_db_password
+N8N_LOG_LEVEL=debug
+```
 
-For development with hot reload, create `docker-compose.override.yml`:
+## Development Workflow
 
-```yaml
+### Basic Development
+```bash
+# Start services
+docker-compose up -d
+
+# Access N8N UI
+open http://localhost:5678
+
+# View logs in real-time
+docker-compose logs -f n8n
+
+# Access database
+docker-compose exec postgres psql -U n8n -d n8n
+```
+
+### With Hot Reload
+```bash
+# Create override file for development
+cat > docker-compose.override.yml << 'EOF'
 version: '3.8'
-
 services:
   n8n:
     volumes:
@@ -162,12 +92,15 @@ services:
       - ./activities:/home/node/activities:ro
     environment:
       - N8N_LOG_LEVEL=debug
+EOF
+
+# Start with hot reload
+docker-compose up -d
+
+# Files are watched and auto-reloaded
 ```
 
 ### Cursor CLI Integration
-
-To use Cursor CLI inside the N8N container:
-
 ```bash
 # Access N8N container
 docker-compose exec n8n sh
@@ -175,89 +108,76 @@ docker-compose exec n8n sh
 # Install Cursor CLI inside container
 curl https://cursor.com/install -fsS | bash
 
-# Use Cursor CLI
-cursor-agent chat "Review this code"
+# Use AI commands
+cursor-agent chat "Review this code for bugs"
+```
+
+## Data Management
+
+### Persistence
+All data is automatically persisted:
+- **N8N workflows and settings** → `~/.n8n` directory
+- **PostgreSQL database** → `postgres_data` volume
+
+### Backup and Restore
+```bash
+# Backup database
+docker-compose exec postgres pg_dump -U n8n n8n > backup.sql
+
+# Restore database
+docker-compose exec -T postgres psql -U n8n n8n < backup.sql
+
+# Reset everything (WARNING: destroys data)
+docker-compose down -v
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Port already in use:**
+**Port conflicts:**
 ```bash
 # Check what's using port 5678
 lsof -i :5678
 
-# Kill process or change port
-kill -9 <PID>
-# or
+# Use different port
 N8N_PORT=5679 docker-compose up -d
 ```
 
-**Permission denied on ~/.n8n:**
+**Permission issues:**
 ```bash
+# Fix N8N data permissions
 sudo chown -R $USER:$USER ~/.n8n
 sudo chmod -R 755 ~/.n8n
 ```
 
-**Database connection failed:**
+**Database connection problems:**
 ```bash
-# Check logs
+# Check database status
 docker-compose logs postgres
 
-# Test connection
+# Test database connection
 docker-compose exec postgres pg_isready -U n8n
 
-# Reset everything
-docker-compose down -v
-docker-compose up -d
+# Reset database
+docker-compose down -v && docker-compose up -d
 ```
 
-**N8N won't start:**
-```bash
-# Check logs
-docker-compose logs n8n
+## Integration
 
-# Debug mode
-N8N_LOG_LEVEL=debug docker-compose up -d
-```
+This Docker Compose setup integrates seamlessly with:
+- **Taskfile** for command-line automation
+- **Custom workflows** via mounted volumes
+- **Custom activities** via mounted volumes
+- **Development tools** via container access
 
-## Integration Examples
+## Production Considerations
 
-### With Taskfile
+For production deployment:
+- Use stronger passwords
+- Configure SSL/TLS encryption
+- Set up proper firewall rules
+- Use external database for scalability
+- Configure resource limits and monitoring
 
-```bash
-# Via Taskfile (see 01-taskfile.md)
-task setup   # Start services
-task logs    # View logs
-task stop    # Stop services
-```
-
-### With Custom Workflows
-
-```yaml
-# Mount in docker-compose.yml
-volumes:
-  - ./workflows:/home/node/workflows:ro
-```
-
-### With Custom Activities
-
-```yaml
-# Mount in docker-compose.yml
-volumes:
-  - ./activities:/home/node/activities:ro
-```
-
-## Data Persistence
-
-All data persists in Docker volumes:
-- `~/.n8n` → N8N workflows and settings
-- `postgres_data` → PostgreSQL database
-
-To reset everything:
-```bash
-docker-compose down -v
-```
-
-This simple Docker Compose setup provides everything needed for local N8N development with PostgreSQL.
+This Docker Compose setup provides a solid foundation for both development and production N8N deployments.

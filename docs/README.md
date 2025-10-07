@@ -8,7 +8,7 @@ This documentation is organized into focused, practical sections:
 
 ### Core Components
 
-1. **[Taskfile Commands](01-taskfile.md)** - Unified CLI automation with Task
+1. **[Taskfile Commands](01-taskfile.md)** - Unified CLI automation
    - Complete Taskfile.yml with 40+ tasks
    - Infrastructure management (Docker Compose)
    - N8N workflow orchestration
@@ -45,7 +45,7 @@ task setup
 ### Development Workflow
 ```bash
 # Start development environment with hot reload
-task dev
+task serve
 
 # Run specific workflow
 task run-workflow --name="code-review" --prompt="Review this code"

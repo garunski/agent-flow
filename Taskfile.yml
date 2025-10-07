@@ -1,0 +1,41 @@
+# Taskfile.yml - Main entry point
+version: '3'
+
+# Include all task modules
+includes:
+  infrastructure: ./tasks/Taskfile.infrastructure.yml
+  development: ./tasks/Taskfile.development.yml
+  n8n: ./tasks/Taskfile.n8n.yml
+  workflows: ./tasks/Taskfile.workflows.yml
+  cursor: ./tasks/Taskfile.cursor.yml
+  management: ./tasks/Taskfile.management.yml
+  utilities: ./tasks/Taskfile.utilities.yml
+
+# Global environment variables
+env:
+  N8N_BASIC_AUTH_USER: admin
+  N8N_BASIC_AUTH_PASSWORD: "{{.N8N_PASSWORD}}"
+  POSTGRES_PASSWORD: "{{.DB_PASSWORD}}"
+  CURSOR_API_KEY: "{{.CURSOR_API_KEY}}"
+
+# Global variables
+vars:
+  N8N_PORT: 5678
+  N8N_URL: http://localhost:{{.N8N_PORT}}
+  PROJECT_ROOT: .
+  CURSOR_MODEL: claude-4-sonnet
+  CURSOR_TIMEOUT: 300
+
+# Main task aliases for convenience
+tasks:
+  # Quick start
+  up: infrastructure:start
+  down: infrastructure:stop
+
+  # Development workflow
+  serve: development:dev
+
+  # Common operations
+  build: infrastructure:setup
+  logs: n8n:logs
+  clean: management:clean

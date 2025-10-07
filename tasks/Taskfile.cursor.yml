@@ -1,0 +1,40 @@
+version: '3'
+
+vars:
+  CURSOR_MODEL: claude-4-sonnet
+  CURSOR_TIMEOUT: 300
+  PROJECT_ROOT: .
+
+tasks:
+  cursor:
+    desc: "Execute Cursor CLI command"
+    cmds:
+      - cd {{.PROJECT_PATH}} && cursor-agent chat "{{.CLI_ARGS}}"
+    env:
+      CURSOR_MODEL: "{{.CURSOR_MODEL}}"
+      CURSOR_TIMEOUT: "{{.CURSOR_TIMEOUT}}"
+
+  cursor:interactive:
+    desc: "Start interactive Cursor CLI session"
+    cmds:
+      - cursor-agent
+
+  cursor:review:
+    desc: "Run code review with Cursor CLI"
+    cmds:
+      - task: cursor -- "Review code for bugs and improvements"
+
+  cursor:refactor:
+    desc: "Run refactoring with Cursor CLI"
+    cmds:
+      - task: cursor -- "Refactor code following best practices"
+
+  cursor:test:
+    desc: "Generate tests with Cursor CLI"
+    cmds:
+      - task: cursor -- "Generate comprehensive unit tests"
+
+  cursor:docs:
+    desc: "Update documentation with Cursor CLI"
+    cmds:
+      - task: cursor -- "Update documentation with recent changes"

@@ -1,0 +1,30 @@
+{
+  "node": "n8n-nodes-custom.cursorParse",
+  "nodeType": "n8n-nodes-base.function",
+  "displayName": "Cursor Parse",
+  "description": "Parse and structure Cursor CLI responses",
+  "icon": "text.svg",
+  "group": ["transform"],
+  "version": 1,
+  "defaults": {
+    "name": "Cursor Parse",
+    "color": "#ff6b35"
+  },
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "properties": [
+    {
+      "displayName": "Output Format",
+      "name": "outputFormat",
+      "type": "options",
+      "options": [
+        { "name": "JSON", "value": "json" },
+        { "name": "Markdown", "value": "markdown" },
+        { "name": "Text", "value": "text" },
+        { "name": "Auto-detect", "value": "auto" }
+      ],
+      "default": "auto",
+      "description": "Expected output format"
+    }
+  ]
+}

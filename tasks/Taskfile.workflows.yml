@@ -1,0 +1,35 @@
+version: '3'
+
+vars:
+  N8N_URL: http://localhost:5678
+  PROJECT_ROOT: .
+
+tasks:
+  run-workflow:
+    desc: "Execute a specific workflow"
+    cmds:
+      - >
+        curl -s -X POST "{{.N8N_URL}}/webhook/{{.WORKFLOW_NAME}}"
+        -H "Content-Type: application/json"
+        -H "X-N8N-API-KEY: {{.N8N_API_KEY}}"
+        -d '{"prompt": "{{.PROMPT}}", "projectPath": "{{.PROJECT_PATH}}"}'
+        | jq .
+    vars:
+      WORKFLOW_NAME:
+        sh: echo "{{.CLI_ARGS}}" | cut -d' ' -f1
+      PROMPT:
+        sh: echo "{{.CLI_ARGS}}" | cut -d' ' -f2-
+      PROJECT_PATH: "{{.PROJECT_ROOT}}"
+
+  list-workflows:
+    desc: "List available workflows"
+    cmds:
+      - >
+        curl -s "{{.N8N_URL}}/rest/workflows"
+        -H "X-N8N-API-KEY: {{.N8N_API_KEY}}"
+        | jq -r '.data[].name'
+
+  trigger-workflow:
+    desc: "Trigger workflow by name"
+    cmds:
+      - task: run-workflow

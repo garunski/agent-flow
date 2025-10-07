@@ -1,0 +1,41 @@
+{
+  "autoLoad": true,
+  "watchMode": true,
+  "validation": true,
+  "hotReload": true,
+  "deployment": {
+    "autoDeploy": true,
+    "n8nUrl": "http://localhost:5678",
+    "n8nApiKey": "${N8N_API_KEY}",
+    "environment": "development"
+  },
+  "logging": {
+    "level": "info",
+    "file": "./logs/workflows.log",
+    "maxSize": "10MB",
+    "maxFiles": 5
+  },
+  "performance": {
+    "cacheEnabled": true,
+    "cacheTTL": 300000,
+    "maxConcurrentLoads": 5,
+    "retryAttempts": 3,
+    "retryDelay": 1000
+  },
+  "validation": {
+    "strictMode": true,
+    "customRules": [
+      {
+        "name": "unique-node-names",
+        "enabled": true,
+        "severity": "error"
+      },
+      {
+        "name": "valid-connections",
+        "enabled": true,
+        "severity": "error"
+      }
+    ]
+  }
+}
+
