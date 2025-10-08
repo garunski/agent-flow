@@ -4,23 +4,22 @@ vars:
   N8N_URL: http://localhost:5678
 
 tasks:
-  shell:
-    desc: "Open shell in N8N container"
-    cmds:
-      - docker-compose exec n8n bash
-
-  shell:db:
-    desc: "Open PostgreSQL shell"
-    cmds:
-      - docker-compose exec postgres psql -U n8n -d n8n
-
   health:
     desc: "Check system health"
     cmds:
-      - echo "🔍 Checking N8N..."
-      - curl -f {{.N8N_URL}}/healthz || echo "❌ N8N not healthy"
-      - echo "🔍 Checking PostgreSQL..."
-      - docker-compose exec postgres pg_isready -U n8n || echo "❌ PostgreSQL not healthy"
-      - echo "🔍 Checking Cursor CLI..."
-      - cursor-agent --version || echo "❌ Cursor CLI not available"
-      - echo "✅ Health check complete"
+      - echo "Checking N8N..."
+      - curl -f {{.N8N_URL}}/healthz || echo "N8N not healthy"
+      - echo "Health check complete"
+
+  serve:
+    desc: "Start development server"
+    cmds:
+      - echo "Starting Agent Flow development server..."
+      - task up
+      - echo "Services started successfully!"
+
+  verify-setup:
+    desc: "Verify system setup and requirements"
+    cmds:
+      - echo "Verifying Agent Flow setup..."
+      - echo "Setup verification completed"

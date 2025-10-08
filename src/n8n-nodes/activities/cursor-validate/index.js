@@ -67,7 +67,7 @@ module.exports = {
 
     for (let i = 0; i < items.length; i++) {
       const output = items[i].json.output || items[i].json.parsedOutput;
-      const validationRules = this.getNodeParameter('validationRules', i) as any;
+      const validationRules = this.getNodeParameter('validationRules', i) as Record<string, unknown>;
       const extractMetrics = this.getNodeParameter('extractMetrics', i) as boolean;
 
       if (!output) {

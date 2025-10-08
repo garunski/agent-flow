@@ -2,8 +2,11 @@ import { WorkflowDefinition } from '../types/workflow';
 import { WorkflowValidator } from './validator';
 import { WorkflowWatcher } from './watcher';
 import { WorkflowRegistry } from './registry';
+import { withRetry, retryConditions } from '../utils/retry';
+import { ErrorHandler, errorContexts } from '../utils/error-handler';
 import fs from 'fs';
 import path from 'path';
+import { glob } from 'glob';
 
 export class WorkflowLoader {
   private validator: WorkflowValidator;
@@ -56,9 +59,14 @@ export class WorkflowLoader {
             });
           }
         } catch (error) {
+          const enhancedError = ErrorHandler.handleError(
+            error as Error,
+            errorContexts.workflowLoader('loadWorkflowFile', path.basename(file))
+          );
+          
           result.errors.push({
             file: file,
-            errors: [`Failed to load workflow: ${error.message}`],
+            errors: [ErrorHandler.formatError(enhancedError)],
           });
         }
       }
@@ -80,18 +88,23 @@ export class WorkflowLoader {
   }
 
   private async findWorkflowFiles(): Promise<string[]> {
-    const workflowsDir = this.config.workflowsDir;
-    const extensions = this.config.supportedExtensions;
+    return withRetry(async () => {
+      const workflowsDir = this.config.workflowsDir;
+      const extensions = this.config.supportedExtensions;
 
-    const files: string[] = [];
+      const files: string[] = [];
 
-    for (const ext of extensions) {
-      const pattern = path.join(workflowsDir, `**/*.${ext}`);
-      const matches = await glob(pattern);
-      files.push(...matches);
-    }
+      for (const ext of extensions) {
+        const pattern = path.join(workflowsDir, `**/*.${ext}`);
+        const matches = await glob(pattern);
+        files.push(...matches);
+      }
 
-    return files;
+      return files;
+    }, {
+      maxRetries: 3,
+      retryCondition: retryConditions.networkError,
+    });
   }
 
   private async loadWorkflowFile(filePath: string): Promise<WorkflowDefinition> {

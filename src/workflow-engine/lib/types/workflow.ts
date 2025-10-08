@@ -8,8 +8,8 @@ export interface WorkflowDefinition {
   nodes: WorkflowNode[];
   connections: WorkflowConnections;
   settings?: WorkflowSettings;
-  staticData?: any;
-  pinData?: any;
+  staticData?: Record<string, unknown>;
+  pinData?: Record<string, unknown>;
   meta?: WorkflowMeta;
 }
 
@@ -59,7 +59,7 @@ export interface WorkflowMeta {
 
 export interface WorkflowExecutionResult {
   success: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
   error?: string;
   executionId?: string;
   duration?: number;

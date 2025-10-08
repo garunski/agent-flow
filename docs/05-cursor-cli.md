@@ -1,322 +1,587 @@
-# Cursor CLI Manual
+# Cursor CLI Integration
 
-Direct usage guide for the Cursor AI coding assistant.
+> **Complete guide to integrating Cursor CLI with Agent Flow workflows**
 
-## Overview
+Cursor CLI is the command-line interface for Cursor's AI coding assistant, providing powerful AI capabilities for code analysis, generation, and modification. Agent Flow integrates Cursor CLI to enable AI-powered workflows within N8N.
 
-Cursor CLI is an AI-powered coding assistant that helps with:
-- **Code Reviews** - Analyze code for issues and improvements
-- **Code Generation** - Create new code and functionality
-- **Debugging** - Find and fix bugs in existing code
-- **Refactoring** - Improve code structure and performance
-- **Documentation** - Generate and update documentation
+## 🎯 Overview
 
-## Installation
+### What is Cursor CLI?
+Cursor CLI is a command-line tool that provides access to Cursor's AI models (Claude, GPT-4) for code analysis, generation, and modification. It's designed to work with your existing codebase and development workflow.
 
+### Integration Architecture
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Agent Flow    │───▶│  Cursor CLI      │───▶│   AI Models     │
+│   Workflows     │    │  Integration     │    │                 │
+│                 │    │                  │    │ ┌─────────────┐ │
+│  ┌─────────────┐│    │ ┌──────────────┐ │    │ │ Claude 4    │ │
+│  │ N8N         ││    │ │ Command      │ │    │ │ Opus        │ │
+│  │ Activities  ││    │ │ Execution    │ │    │ └─────────────┘ │
+│  └─────────────┘│    │ └──────────────┘ │    │ ┌─────────────┐ │
+│        │        │    │        │         │    │ │ Claude 4    │ │
+│  ┌─────────────┐│    │ ┌──────────────┐ │    │ │ Sonnet      │ │
+│  │ Workflow    ││    │ │ Response     │ │    │ └─────────────┘ │
+│  │ Engine      ││    │ │ Processing   │ │    │ ┌─────────────┐ │
+│  └─────────────┘│    │ └──────────────┘ │    │ │ GPT-4       │ │
+└─────────────────┘    └──────────────────┘    │ └─────────────┘ │
+                                               └─────────────────┘
+```
+
+## 🚀 Installation and Setup
+
+### Prerequisites
+- **Node.js 18+** - Runtime environment
+- **npm or yarn** - Package manager
+- **Cursor Account** - Subscription required
+
+### Installation
+
+#### Global Installation
 ```bash
-# Install Cursor CLI
-curl https://cursor.com/install -fsS | bash
-
-# Add to PATH (if needed)
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
+# Install Cursor CLI globally
+npm install -g @cursor/cli
 
 # Verify installation
 cursor-agent --version
 ```
 
-## Basic Usage
-
-### Interactive Mode
+#### Local Installation
 ```bash
-# Start conversational session
-cursor-agent
+# Install in project directory
+npm install @cursor/cli
 
-# Example conversation:
-> Review this authentication module for security issues
-> Generate unit tests for the UserService class
-> Refactor the database connection logic
-> Exit
+# Use via npx
+npx cursor-agent --version
 ```
 
-### Single Commands
+### Authentication
+
+#### API Key Setup
 ```bash
-# Code review
-cursor-agent chat "Review src/auth.ts for security vulnerabilities"
+# Set API key environment variable
+export CURSOR_API_KEY="your_cursor_api_key_here"
 
-# Code generation
-cursor-agent chat "Create a REST API endpoint for user registration"
-
-# Bug fixing
-cursor-agent chat "Find and fix the memory leak in UserService.ts"
-
-# Documentation
-cursor-agent chat "Update README.md with recent API changes"
+# Or add to .env file
+echo "CURSOR_API_KEY=your_cursor_api_key_here" >> .env
 ```
 
-## Common Use Cases
+#### API Key Configuration
+1. **Get API Key**: Visit [Cursor Dashboard](https://cursor.sh/dashboard)
+2. **Generate Key**: Create a new API key
+3. **Set Environment**: Add to your environment variables
+4. **Test Connection**: Run `cursor-agent --version`
 
-### Code Reviews
+### Configuration
+
+#### Environment Variables
 ```bash
-# Security review
-cursor-agent chat "Review this code for security vulnerabilities and suggest fixes"
+# Required
+CURSOR_API_KEY=your_cursor_api_key_here
 
-# Performance analysis
-cursor-agent chat "Analyze this function for performance issues and optimization opportunities"
+# Optional
+CURSOR_MODEL=claude-4-sonnet
+CURSOR_TIMEOUT=300
+CURSOR_MAX_TOKENS=4000
+CURSOR_TEMPERATURE=0.7
+```
 
-# Code quality
-cursor-agent chat "Review this code for best practices and suggest improvements"
+#### Configuration File
+```json
+// .cursorrc
+{
+  "apiKey": "your_cursor_api_key_here",
+  "defaultModel": "claude-4-sonnet",
+  "timeout": 300,
+  "maxTokens": 4000,
+  "temperature": 0.7
+}
+```
+
+## 🤖 Available Models
+
+### Claude Models
+
+#### Claude 4 Opus
+- **Best for**: Complex reasoning, code analysis, architecture decisions
+- **Strengths**: Most capable, best understanding of context
+- **Use Cases**: Code reviews, architectural refactoring, complex problem solving
+- **Cost**: Highest
+
+#### Claude 4 Sonnet
+- **Best for**: Balanced performance and speed
+- **Strengths**: Good balance of capability and efficiency
+- **Use Cases**: General development tasks, code generation, debugging
+- **Cost**: Medium
+
+#### Claude 4 Haiku
+- **Best for**: Simple tasks, quick responses
+- **Strengths**: Fastest, most cost-effective
+- **Use Cases**: Simple code generation, quick fixes, basic analysis
+- **Cost**: Lowest
+
+### GPT Models
+
+#### GPT-4
+- **Best for**: General purpose AI tasks
+- **Strengths**: Good general knowledge, code understanding
+- **Use Cases**: Code generation, documentation, general analysis
+- **Cost**: Medium
+
+#### GPT-4 Turbo
+- **Best for**: Fast responses with good quality
+- **Strengths**: Faster than GPT-4, good quality
+- **Use Cases**: Quick iterations, rapid prototyping
+- **Cost**: Medium
+
+## 🔧 Command Reference
+
+### Basic Commands
+
+#### Chat Command
+```bash
+# Basic chat
+cursor-agent chat "Your prompt here"
+
+# With specific model
+cursor-agent chat "Your prompt here" --model claude-4-sonnet
+
+# With timeout
+cursor-agent chat "Your prompt here" --timeout 600
+
+# With project context
+cursor-agent chat "Your prompt here" --project /path/to/project
+```
+
+#### Code Analysis
+```bash
+# Analyze specific file
+cursor-agent analyze /path/to/file.js
+
+# Analyze entire project
+cursor-agent analyze /path/to/project --recursive
+
+# Analyze with specific focus
+cursor-agent analyze /path/to/project --focus security
+```
+
+#### Code Generation
+```bash
+# Generate code
+cursor-agent generate "Create a React component for user login"
+
+# Generate with context
+cursor-agent generate "Create a React component for user login" --context /path/to/project
+
+# Generate tests
+cursor-agent generate "Generate unit tests for this function" --file /path/to/file.js
+```
+
+### Advanced Commands
+
+#### Interactive Mode
+```bash
+# Start interactive session
+cursor-agent interactive
+
+# Interactive with project context
+cursor-agent interactive --project /path/to/project
+```
+
+#### Batch Processing
+```bash
+# Process multiple files
+cursor-agent batch --input /path/to/files --prompt "Review these files"
+
+# Process with different models
+cursor-agent batch --input /path/to/files --model claude-4-sonnet --prompt "Review these files"
+```
+
+#### Configuration Commands
+```bash
+# Show current configuration
+cursor-agent config
+
+# Set configuration
+cursor-agent config set model claude-4-sonnet
+cursor-agent config set timeout 600
+
+# Reset configuration
+cursor-agent config reset
+```
+
+## 🔌 Agent Flow Integration
+
+### Custom Activities
+
+#### Cursor Execute Activity
+```typescript
+// N8N node configuration
+{
+  id: 'cursor-execute',
+  name: 'Execute Cursor CLI',
+  type: 'n8n-nodes-custom.cursorExecute',
+  parameters: {
+    prompt: '={{ $json.prompt }}',
+    projectPath: '={{ $json.projectPath }}',
+    model: '={{ $json.model }}',
+    timeout: 300,
+  },
+}
+```
+
+#### Cursor Parse Activity
+```typescript
+// N8N node configuration
+{
+  id: 'cursor-parse',
+  name: 'Parse Response',
+  type: 'n8n-nodes-custom.cursorParse',
+  parameters: {
+    outputFormat: 'markdown',
+  },
+}
+```
+
+#### Cursor Validate Activity
+```typescript
+// N8N node configuration
+{
+  id: 'cursor-validate',
+  name: 'Validate Response',
+  type: 'n8n-nodes-custom.cursorValidate',
+  parameters: {
+    validationRules: {
+      rules: [
+        {
+          type: 'contains',
+          value: 'security',
+        },
+        {
+          type: 'minLength',
+          value: 100,
+        },
+      ],
+    },
+  },
+}
+```
+
+### Workflow Integration
+
+#### Code Review Workflow
+```typescript
+// Workflow definition
+export const codeReviewWorkflow: WorkflowDefinition = {
+  id: 'code-review-workflow',
+  name: 'AI Code Review',
+  nodes: [
+    {
+      id: 'cursor-execute',
+      name: 'Execute Code Review',
+      type: 'n8n-nodes-custom.cursorExecute',
+      parameters: {
+        prompt: 'Review this code for security issues, performance problems, and best practices',
+        projectPath: '={{ $json.projectPath }}',
+        model: 'claude-4-sonnet',
+        timeout: 600,
+      },
+    },
+    // ... other nodes
+  ],
+  // ... connections and settings
+};
+```
+
+#### Refactoring Workflow
+```typescript
+// Workflow definition
+export const refactoringWorkflow: WorkflowDefinition = {
+  id: 'refactoring-workflow',
+  name: 'AI Refactoring',
+  nodes: [
+    {
+      id: 'cursor-execute',
+      name: 'Execute Refactoring',
+      type: 'n8n-nodes-custom.cursorExecute',
+      parameters: {
+        prompt: 'Refactor this code to use modern patterns and improve readability',
+        projectPath: '={{ $json.projectPath }}',
+        model: 'claude-4-opus',
+        timeout: 900,
+      },
+    },
+    // ... other nodes
+  ],
+  // ... connections and settings
+};
+```
+
+## 🎯 Use Cases
+
+### Code Review
+```bash
+# Review specific file
+cursor-agent chat "Review this React component for security issues" --file src/components/Login.js
+
+# Review entire project
+cursor-agent chat "Review this project for security vulnerabilities" --project /path/to/project
+
+# Review with specific focus
+cursor-agent chat "Review this code for performance issues" --file src/utils/helpers.js
 ```
 
 ### Code Generation
 ```bash
-# New features
-cursor-agent chat "Create a user authentication system with JWT tokens"
+# Generate component
+cursor-agent generate "Create a React component for user profile" --context /path/to/project
 
-# API endpoints
-cursor-agent chat "Generate REST API endpoints for a blog application"
+# Generate API endpoint
+cursor-agent generate "Create a REST API endpoint for user authentication" --context /path/to/project
 
-# Utility functions
-cursor-agent chat "Create utility functions for date formatting and validation"
-```
-
-### Debugging
-```bash
-# Error analysis
-cursor-agent chat "Debug this error: TypeError: Cannot read property 'map' of undefined"
-
-# Bug hunting
-cursor-agent chat "Find the source of the memory leak in this React component"
-
-# Performance issues
-cursor-agent chat "Identify why this function is running slowly"
+# Generate tests
+cursor-agent generate "Generate unit tests for this function" --file src/utils/helpers.js
 ```
 
 ### Refactoring
 ```bash
-# Modernization
-cursor-agent chat "Refactor this code to use modern JavaScript/TypeScript patterns"
+# Refactor specific file
+cursor-agent chat "Refactor this code to use modern JavaScript patterns" --file src/legacy.js
 
-# Performance optimization
-cursor-agent chat "Optimize this algorithm for better performance"
+# Refactor entire module
+cursor-agent chat "Refactor this module to improve performance" --project /path/to/module
 
-# Code organization
-cursor-agent chat "Reorganize this file structure following SOLID principles"
+# Refactor with specific goals
+cursor-agent chat "Refactor this code to be more maintainable" --file src/components/ComplexComponent.js
 ```
 
-## Advanced Features
+### Documentation
+```bash
+# Generate documentation
+cursor-agent generate "Generate README for this project" --context /path/to/project
 
-### Custom Commands
-Create project-specific commands using MCP (Model Context Protocol):
+# Generate API docs
+cursor-agent generate "Generate API documentation for this module" --file src/api/routes.js
 
-```javascript
-// config/cursor-commands.js
-module.exports = {
-  commands: {
-    '/test': {
-      description: 'Run project tests',
-      execute: async (args) => {
-        // Run test suite
-        return 'Tests completed successfully';
-      }
-    },
-    '/deploy': {
-      description: 'Deploy current branch',
-      execute: async (args) => {
-        // Trigger deployment
-        return 'Deployment initiated';
-      }
-    }
-  }
-};
+# Generate code comments
+cursor-agent chat "Add comprehensive comments to this code" --file src/utils/helpers.js
 ```
+
+### Bug Fixing
+```bash
+# Fix specific bug
+cursor-agent chat "Fix this memory leak in the React component" --file src/components/DataTable.js
+
+# Debug error
+cursor-agent chat "Debug this error and provide a fix" --file src/utils/errorHandler.js
+
+# Fix performance issue
+cursor-agent chat "Fix the performance issue in this function" --file src/utils/processData.js
+```
+
+## ⚙️ Configuration Options
 
 ### Model Selection
+
+#### For Code Review
 ```bash
-# Use specific AI models
-cursor-agent chat "Review code" --model claude-4-opus
-cursor-agent chat "Generate tests" --model gpt-4
-cursor-agent chat "Debug issue" --model claude-4-sonnet
+# Use Claude 4 Sonnet for balanced performance
+cursor-agent chat "Review this code" --model claude-4-sonnet
+
+# Use Claude 4 Opus for complex analysis
+cursor-agent chat "Review this complex architecture" --model claude-4-opus
+```
+
+#### For Code Generation
+```bash
+# Use Claude 4 Sonnet for general generation
+cursor-agent generate "Create a React component" --model claude-4-sonnet
+
+# Use GPT-4 for specific patterns
+cursor-agent generate "Create a Python Flask API" --model gpt-4
+```
+
+#### For Refactoring
+```bash
+# Use Claude 4 Opus for complex refactoring
+cursor-agent chat "Refactor this legacy code" --model claude-4-opus
+
+# Use Claude 4 Sonnet for simple refactoring
+cursor-agent chat "Refactor this function" --model claude-4-sonnet
+```
+
+### Timeout Configuration
+
+#### Short Tasks (1-5 minutes)
+```bash
+cursor-agent chat "Quick code review" --timeout 300
+```
+
+#### Medium Tasks (5-15 minutes)
+```bash
+cursor-agent chat "Comprehensive code analysis" --timeout 900
+```
+
+#### Long Tasks (15+ minutes)
+```bash
+cursor-agent chat "Complex refactoring" --timeout 1800
 ```
 
 ### Project Context
+
+#### Single File
 ```bash
-# Set project path
-export CURSOR_PROJECT_PATH=/path/to/project
-
-# Run with project context
-cursor-agent chat "Review this codebase structure"
+cursor-agent chat "Review this file" --file src/components/Button.js
 ```
 
-## Integration with System
-
-### Taskfile Integration
+#### Multiple Files
 ```bash
-# Via Taskfile (see 01-taskfile.md)
-task cursor -- "Review this code"
-task cursor:review
-task cursor:refactor
+cursor-agent chat "Review these files" --files src/components/*.js
 ```
 
-### N8N Integration
+#### Entire Project
 ```bash
-# Trigger via N8N workflows
-curl -X POST http://localhost:5678/webhook/cursor-trigger \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Review code for security issues"}'
+cursor-agent chat "Review this project" --project /path/to/project
 ```
 
-### Development Workflow
-```bash
-# 1. Setup infrastructure
-task setup
-
-# 2. Start development environment
-task serve
-
-# 3. Use Cursor CLI for coding tasks
-cursor-agent chat "Generate API documentation"
-
-# 4. Results integrated into workflows
-# 5. Changes tracked and deployed
-```
-
-## Best Practices
-
-### Prompt Engineering
-**Good Prompts:**
-- ✅ Specific and focused: "Review src/auth.ts for security vulnerabilities"
-- ✅ Include context: "Review this React component for performance issues"
-- ✅ Clear requirements: "Generate unit tests for all public methods"
-
-**Poor Prompts:**
-- ❌ Too vague: "Fix the code"
-- ❌ Too broad: "Review everything"
-- ❌ No context: "Make it better"
-
-### Project Context
-1. **Set project path** for accurate context awareness
-2. **Include relevant files** in prompts when needed
-3. **Specify technology stack** (React, Node.js, Python, etc.)
-4. **Mention dependencies** and constraints
-
-### Error Handling
-1. **Test commands** before automation
-2. **Handle failures gracefully** in automated workflows
-3. **Monitor execution** for timeouts and errors
-4. **Log results** for debugging and analysis
-
-### Performance
-1. **Use appropriate models** for different tasks
-2. **Break large tasks** into smaller, focused requests
-3. **Monitor token usage** and costs
-4. **Cache results** for repeated operations
-
-## Configuration
-
-### Environment Variables
-```bash
-# Set default model
-export CURSOR_DEFAULT_MODEL=claude-4-sonnet
-
-# Set timeout (seconds)
-export CURSOR_TIMEOUT=300
-
-# Set project path
-export CURSOR_PROJECT_PATH=/path/to/project
-
-# Enable debug mode
-export CURSOR_DEBUG=true
-```
-
-### Configuration File
-```json
-// ~/.cursor/config.json
-{
-  "models": {
-    "default": "claude-4-sonnet",
-    "fast": "claude-4-haiku"
-  },
-  "mcp": {
-    "servers": {
-      "custom-commands": {
-        "command": "node",
-        "args": ["/path/to/custom-commands.js"]
-      }
-    }
-  }
-}
-```
-
-## Troubleshooting
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-**Command not found:**
+#### Authentication Errors
 ```bash
-# Check PATH
-echo $PATH
-which cursor-agent
+# Check API key
+echo $CURSOR_API_KEY
 
-# Reinstall if needed
-curl https://cursor.com/install -fsS | bash
+# Test connection
+cursor-agent --version
+
+# Re-authenticate
+cursor-agent auth login
 ```
 
-**Permission errors:**
+#### Model Not Found
 ```bash
-# Fix execute permissions
-chmod +x ~/.local/bin/cursor-agent
+# List available models
+cursor-agent models list
+
+# Check model name
+cursor-agent chat "Test" --model claude-4-sonnet
 ```
 
-**Timeout issues:**
+#### Timeout Issues
 ```bash
 # Increase timeout
-export CURSOR_TIMEOUT=600
+cursor-agent chat "Complex task" --timeout 1800
 
-# Use smaller, focused prompts
-cursor-agent chat "Review just this function"
+# Check system resources
+top
+htop
 ```
 
-**Context issues:**
+#### Permission Issues
 ```bash
-# Set project path explicitly
-export CURSOR_PROJECT_PATH=/path/to/project
-cd /path/to/project && cursor-agent chat "Review this codebase"
+# Check file permissions
+ls -la /path/to/project
+
+# Fix permissions
+chmod -R 755 /path/to/project
 ```
 
-## Integration Examples
-
-### With Git Hooks
+### Debug Mode
 ```bash
-# Pre-commit hook for code review
-#!/bin/bash
-# .git/hooks/pre-commit
-cursor-agent chat "Review changes for security issues" --input "$(git diff --cached)"
+# Enable verbose logging
+cursor-agent chat "Test" --verbose
+
+# Enable debug mode
+export CURSOR_DEBUG=true
+cursor-agent chat "Test"
 ```
 
-### With CI/CD
-```yaml
-# GitHub Actions
-- name: AI Code Review
-  run: |
-    cursor-agent chat "Review PR changes for security and quality issues"
-```
+### Performance Issues
 
-### With Development Tools
+#### Slow Responses
 ```bash
-# VS Code task
-{
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "AI Code Review",
-      "type": "shell",
-      "command": "cursor-agent",
-      "args": ["chat", "Review this code for improvements"],
-      "group": "build"
-    }
-  ]
-}
+# Use faster model
+cursor-agent chat "Quick task" --model claude-4-haiku
+
+# Reduce context
+cursor-agent chat "Task" --file specific-file.js
 ```
 
-Cursor CLI provides a powerful AI assistant for all aspects of software development, from code generation and review to debugging and documentation. When integrated with N8N workflows, it becomes a complete automation platform for AI-powered development processes.
+#### Memory Issues
+```bash
+# Check memory usage
+free -h
+
+# Reduce batch size
+cursor-agent batch --input /path/to/files --batch-size 5
+```
+
+## 📊 Performance Optimization
+
+### Model Selection Strategy
+
+#### Task Complexity vs Model
+- **Simple Tasks**: Claude 4 Haiku (fast, cheap)
+- **Medium Tasks**: Claude 4 Sonnet (balanced)
+- **Complex Tasks**: Claude 4 Opus (most capable)
+
+#### Response Time vs Quality
+- **Quick Iterations**: GPT-4 Turbo
+- **High Quality**: Claude 4 Opus
+- **Balanced**: Claude 4 Sonnet
+
+### Caching Strategies
+
+#### Response Caching
+```bash
+# Enable response caching
+cursor-agent chat "Task" --cache
+
+# Clear cache
+cursor-agent cache clear
+```
+
+#### Model Caching
+```bash
+# Use model caching
+cursor-agent chat "Task" --model claude-4-sonnet --cache-model
+```
+
+### Resource Management
+
+#### Memory Optimization
+```bash
+# Limit memory usage
+cursor-agent chat "Task" --max-memory 2GB
+
+# Process in batches
+cursor-agent batch --input /path/to/files --batch-size 10
+```
+
+#### CPU Optimization
+```bash
+# Limit CPU usage
+cursor-agent chat "Task" --max-cpu 50
+
+# Use async processing
+cursor-agent chat "Task" --async
+```
+
+## 📚 Additional Resources
+
+- **[Taskfile Commands](01-taskfile.md)** - CLI automation
+- **[Docker Setup](02-docker-compose.md)** - Infrastructure configuration
+- **[Custom Activities](03-custom-activities.md)** - N8N node development
+- **[Workflow Development](04-workflow-code.md)** - TypeScript workflow definitions
+- **[Troubleshooting](08-troubleshooting.md)** - Common issues and solutions
+
+### External Resources
+- **[Cursor CLI Documentation](https://cursor.sh/docs)** - Official Cursor CLI docs
+- **[Claude API Documentation](https://docs.anthropic.com/)** - Claude API reference
+- **[OpenAI API Documentation](https://platform.openai.com/docs)** - OpenAI API reference
+
+---
+
+**Version:** 1.0.0 | **Last Updated:** 2024-10-07

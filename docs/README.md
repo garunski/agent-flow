@@ -1,106 +1,259 @@
 # Agent Flow Documentation
 
-Complete documentation for the Agent Flow system - automating Cursor CLI with N8N workflows.
+> **Complete guide to Agent Flow: AI-Powered Development Automation**
 
-## Documentation Structure
+Welcome to the comprehensive documentation for Agent Flow, a powerful platform that combines Cursor CLI's AI capabilities with N8N's workflow automation to create intelligent development processes.
 
-This documentation is organized into focused, practical sections:
+## 📚 Documentation Overview
 
-### Core Components
+### 🚀 **Getting Started**
+- **[Quick Start Guide](#quick-start)** - Get up and running in minutes
+- **[Prerequisites](#prerequisites)** - System requirements and installation
+- **[Environment Setup](#environment-setup)** - Configuration and initialization
 
-1. **[Taskfile Commands](01-taskfile.md)** - Unified CLI automation
-   - Complete Taskfile.yml with 40+ tasks
-   - Infrastructure management (Docker Compose)
-   - N8N workflow orchestration
-   - Development workflow automation
+### 🛠 **Core Components**
 
-2. **[Docker Compose Setup](02-docker-compose.md)** - Local infrastructure
-   - Simple docker-compose.yml for development
-   - N8N + PostgreSQL stack configuration
-   - Development integration and troubleshooting
+#### **1. [Taskfile Commands](01-taskfile.md)**
+Complete reference for all CLI commands and automation tasks.
+- Infrastructure management (start, stop, restart)
+- Development workflow commands
+- N8N integration and configuration
+- Workflow execution and management
+- Cursor CLI integration
+- System utilities and health checks
 
-3. **[Custom N8N Activities](03-custom-activities.md)** - Integration nodes
-   - CursorExecute, CursorParse, CursorValidate activities
-   - Complete implementations with TypeScript
-   - Development, testing, and deployment
+#### **2. [Docker Compose Setup](02-docker-compose.md)**
+Infrastructure configuration and container orchestration.
+- N8N service configuration
+- PostgreSQL database setup
+- Environment variables and secrets
+- Port mapping and networking
+- Volume management and persistence
+- Health checks and monitoring
 
-4. **[Code-Defined Workflows](04-workflow-code.md)** - TypeScript workflows
-   - Type-safe workflow definitions
-   - Auto-loading and hot reload system
-   - Complete examples (code review, refactoring, testing)
+#### **3. [Custom Activities](03-custom-activities.md)**
+N8N node development and integration patterns.
+- Cursor Execute activity
+- Cursor Parse activity  
+- Cursor Validate activity
+- Custom node development
+- Activity configuration and parameters
+- Error handling and validation
 
-5. **[Cursor CLI Manual](05-cursor-cli.md)** - Direct usage guide
-   - Installation and basic usage
-   - Custom commands integration
-   - MCP server setup and slash commands
+#### **4. [Workflow Development](04-workflow-code.md)**
+TypeScript workflow definitions and development patterns.
+- Workflow structure and types
+- Code Review workflow
+- Refactoring workflow
+- AI Testing workflow
+- Documentation workflow
+- Bug Fixes workflow
+- Custom workflow development
 
-## Quick Reference
+#### **5. [Cursor CLI Integration](05-cursor-cli.md)**
+AI assistant configuration and usage patterns.
+- Cursor CLI installation and setup
+- API key configuration
+- Model selection and parameters
+- Command execution patterns
+- Error handling and retries
+- Performance optimization
 
-### Setup (One Command)
+### 🔧 **Advanced Topics**
+
+#### **6. [API Reference](06-api.md)**
+Health checks, metrics, and monitoring endpoints.
+- Health check endpoints
+- Performance metrics API
+- System status endpoints
+- Monitoring dashboard
+- Alert configuration
+
+#### **7. [Deployment Guide](07-deployment.md)**
+Production deployment and scaling strategies.
+- Production configuration
+- Security considerations
+- Performance tuning
+- Monitoring and alerting
+- Backup and recovery
+- Scaling strategies
+
+#### **8. [Troubleshooting](08-troubleshooting.md)**
+Common issues, solutions, and debugging techniques.
+- Installation problems
+- Docker and container issues
+- N8N configuration problems
+- Cursor CLI integration issues
+- Workflow execution errors
+- Performance optimization
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Docker & Docker Compose** - Container orchestration
+- **Node.js 18+** - Runtime environment
+- **Git** - Version control
+- **jq** - JSON processing utility
+- **Cursor CLI** - AI coding assistant (optional)
+
+### Installation
 ```bash
-# Install prerequisites, setup infrastructure, start services
-task setup
-```
+# 1. Clone the repository
+git clone <repository-url>
+cd agent-flow
 
-### Development Workflow
-```bash
-# Start development environment with hot reload
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# 3. Start the system
 task serve
 
-# Run specific workflow
-task run-workflow --name="code-review" --prompt="Review this code"
-
-# Check system health
-task health
-
-# View logs
-task logs
+# 4. Verify installation
+task utilities:health
 ```
 
-### Key Features
-- ✅ **Type-Safe Workflows** - TypeScript definitions with validation
-- ✅ **Hot Reload** - Automatic updates during development
-- ✅ **Custom Commands** - Project-specific Cursor CLI commands
-- ✅ **Production Ready** - Error handling, caching, monitoring
-- ✅ **CI/CD Integration** - Automated deployment pipelines
+### First Workflow
+```bash
+# List available workflows
+task workflows:list-workflows
 
-## Architecture Overview
+# Run a code review
+task workflows:run-workflow --name="code-review" --prompt="Review this code"
+```
+
+## 🏗 Architecture Overview
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Taskfile      │───▶│  Docker Compose  │───▶│   N8N + DB      │
-│   (CLI Layer)   │    │  (Infrastructure)│    │  (Workflows)    │
+│   Taskfile      │───▶│  Docker Compose  │───▶│  N8N + PostgreSQL│
+│   (CLI Layer)   │    │ (Infrastructure) │    │ (Workflow Engine)│
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Custom Activities│◀───│Code-Defined      │◀───│  Cursor CLI     │
-│   (Integration)  │    │  Workflows       │    │   (AI Engine)   │
+│ Custom Activities│    │  Workflow Loader │    │   Cursor CLI    │
+│ (N8N Integration)│    │ (TypeScript)     │    │ (AI Assistant)  │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-## Getting Started
+### Component Responsibilities
 
-1. **Install Prerequisites** - Docker, Task, Node.js (see [01-taskfile.md](01-taskfile.md#prerequisites-installation))
-2. **Setup Infrastructure** - `task setup` (starts N8N + PostgreSQL)
-3. **Explore Workflows** - Open http://localhost:5678 and import workflows
-4. **Run Examples** - Use `task run-workflow` to test automation
-5. **Customize** - Modify workflows in TypeScript for your needs
+- **Taskfile**: CLI interface and command orchestration
+- **Docker Compose**: Service containerization and networking
+- **N8N**: Workflow execution engine and UI
+- **PostgreSQL**: Data persistence and workflow storage
+- **Custom Activities**: N8N nodes for Cursor CLI integration
+- **Workflow Loader**: TypeScript workflow definition loader
+- **Cursor CLI**: AI assistant for code analysis and generation
 
-## Advanced Usage
+## 🎯 Use Cases
 
-- **Custom Commands** - Create project-specific Cursor CLI commands
-- **CI/CD Integration** - Automated deployment with GitHub Actions
-- **Monitoring** - Health checks, logging, and performance metrics
-- **Scaling** - Queue mode and horizontal scaling for production
+### **Code Reviews** ✅
+Automated code review with intelligent feedback, security analysis, and best practice recommendations.
 
-## Support
+**Features:**
+- Security vulnerability detection
+- Code quality analysis
+- Performance optimization suggestions
+- Best practice recommendations
+- Automated PR comments
 
-- 📖 **[Full Documentation](#)** - Each section above is comprehensively documented
-- 🔧 **Troubleshooting** - Common issues covered in each section
-- 🚀 **Examples** - Real workflow implementations and use cases
-- 💡 **Best Practices** - Guidelines for production deployment
+### **Refactoring** ✅
+Batch code modernization, optimization, and architectural improvements.
+
+**Features:**
+- Legacy code modernization
+- Performance optimization
+- Architectural improvements
+- Code style standardization
+- Dependency updates
+
+### **AI Testing** ✅
+Generate comprehensive test suites with coverage reports and edge case testing.
+
+**Features:**
+- Unit test generation
+- Integration test creation
+- Edge case testing
+- Coverage analysis
+- Test optimization
+
+### **Documentation** ✅
+Auto-updating READMEs, API documentation, and code comments.
+
+**Features:**
+- README generation
+- API documentation
+- Code comments
+- Architecture diagrams
+- Usage examples
+
+### **Bug Fixes** ✅
+Intelligent debugging, error analysis, and automated patch generation.
+
+**Features:**
+- Error analysis
+- Root cause identification
+- Patch generation
+- Regression testing
+- Performance impact analysis
+
+## 🔧 Configuration
+
+### Environment Variables
+```bash
+# N8N Configuration
+N8N_PASSWORD=your_secure_password
+N8N_BASIC_AUTH_USER=admin
+
+# Database Configuration  
+DB_PASSWORD=your_db_password
+
+# Cursor CLI Configuration
+CURSOR_API_KEY=your_cursor_api_key
+CURSOR_MODEL=claude-4-sonnet
+CURSOR_TIMEOUT=300
+```
+
+### Workflow Configuration
+Workflows are defined in TypeScript and automatically loaded from `src/workflow-definitions/workflows/definitions/`.
+
+## 📊 Monitoring & Observability
+
+### Health Checks
+- **System Health**: `task utilities:health`
+- **API Health**: `task utilities:health-api`
+- **Service Status**: `task infrastructure:status`
+
+### Logging
+- **Structured Logs**: Winston-based logging with multiple levels
+- **Log Files**: Stored in `logs/` directory
+- **Real-time Logs**: `task logs`
+
+### Metrics
+- **Performance Metrics**: Execution time tracking
+- **System Metrics**: Resource usage monitoring
+- **Workflow Metrics**: Success rates and error tracking
+
+## 🤝 Contributing
+
+1. **Fork the repository**
+2. **Create a feature branch**
+3. **Make your changes**
+4. **Add tests if applicable**
+5. **Submit a pull request**
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: This comprehensive guide
+- **Troubleshooting**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
 
 ---
 
-**Version:** 1.0.0 | **Updated:** January 2025
+**Version:** 1.0.0 | **Status:** Production Ready | **License:** MIT
