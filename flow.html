@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Orchestration Flow</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rete/1.5.1/rete.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rete-connection-plugin/0.9.0/connection-plugin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rete-area-plugin/0.2.1/area-plugin.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+        }
+
+        .controls h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .workflow-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .workflow-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .workflow-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .workflow-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        #rete {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 16px;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .node.agent {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f6f8ff 0%, #ffffff 100%);
+        }
+
+        .node.tool {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, #fff6f8 0%, #ffffff 100%);
+        }
+
+        .node.validator {
+            border-color: #fbbf24;
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+        }
+
+        .node.storage {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+
+        .node-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #1f2937;
+        }
+
+        .node-subtitle {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .node-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .badge-llm {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-engine {
+            background: #fce7f3;
+            color: #9f1239;
+        }
+
+        .badge-policy {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .socket {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .socket.input {
+            background: #667eea;
+        }
+
+        .socket.output {
+            background: #f5576c;
+        }
+
+        .socket:hover {
+            transform: scale(1.3);
+        }
+
+        .connection {
+            stroke: #667eea;
+            stroke-width: 3;
+            fill: none;
+            pointer-events: none;
+        }
+
+        .connection.feedback {
+            stroke: #fbbf24;
+            stroke-dasharray: 5, 5;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 350px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .info-panel h3 {
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: #667eea;
+        }
+
+        .info-panel ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-panel li {
+            padding-left: 20px;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .info-panel li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="controls">
+            <h2>Workflow Stages</h2>
+            <div class="workflow-selector">
+                <button class="workflow-btn active" onclick="showStage('full', this)">Complete Flow</button>
+                <button class="workflow-btn" onclick="showStage('planning', this)">Planning Layer</button>
+                <button class="workflow-btn" onclick="showStage('execution', this)">Execution Layer</button>
+                <button class="workflow-btn" onclick="showStage('feedback', this)">Feedback Loops</button>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <h3>Architecture Highlights</h3>
+            <ul>
+                <li><strong>LLMs never execute tools</strong> - they only generate intents</li>
+                <li><strong>Policy Engine validates</strong> all actions before execution</li>
+                <li><strong>Minimal context per task</strong> - nodes receive only dependency outputs</li>
+                <li><strong>Immutable audit trail</strong> - DAG + Intent + Execution logs</li>
+                <li><strong>Iterative refinement</strong> - Checker detects gaps, Strategist revises</li>
+            </ul>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #667eea;"></div>
+                <span>Agent (LLM Reasoning)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f5576c;"></div>
+                <span>Tool Execution</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #fbbf24;"></div>
+                <span>Validation/Policy</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #10b981;"></div>
+                <span>Storage/Logs</span>
+            </div>
+        </div>
+
+        <div id="rete"></div>
+    </div>
+
+    <script>
+        // Simple workflow visualization using DOM manipulation
+        // (Rete.js CDN has compatibility issues, so building custom visualization)
+
+        const canvas = document.getElementById('rete');
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.pointerEvents = 'none';
+        canvas.appendChild(svg);
+
+        const nodes = {
+            planning: [
+                { id: 'problem', x: 150, y: 120, title: 'Problem Input', subtitle: 'User request in natural language', type: 'agent' },
+                { id: 'strategy', x: 450, y: 120, title: 'Strategy Generator', subtitle: 'LLM-1: Creates DAG plan', type: 'agent', badge: 'LLM' },
+                { id: 'dag', x: 750, y: 120, title: 'DAG Manifesto', subtitle: 'Immutable workflow blueprint', type: 'storage', badge: 'Storage' },
+            ],
+            execution: [
+                { id: 'decomposer', x: 200, y: 280, title: 'Task Decomposer', subtitle: 'LLM-2: Breaks into atomic steps', type: 'agent', badge: 'LLM' },
+                { id: 'intent', x: 500, y: 280, title: 'Intent Generation', subtitle: 'Structured tool proposals', type: 'agent' },
+                { id: 'policy', x: 800, y: 280, title: 'Policy Engine', subtitle: 'Validates intents (non-LLM)', type: 'validator', badge: 'Policy' },
+                { id: 'executor', x: 1100, y: 280, title: 'Tool Executor', subtitle: 'Executes validated actions', type: 'tool', badge: 'Engine' },
+            ],
+            feedback: [
+                { id: 'checker', x: 250, y: 480, title: 'Checker Agent', subtitle: 'Validates outputs, detects gaps', type: 'agent', badge: 'LLM' },
+                { id: 'gapdetect', x: 600, y: 480, title: 'Gap Detection', subtitle: 'Missing tests, docs, dependencies', type: 'validator' },
+                { id: 'strategist2', x: 950, y: 480, title: 'Strategist Revision', subtitle: 'Updates plan based on feedback', type: 'agent', badge: 'LLM' },
+            ],
+            storage: [
+                { id: 'intentlog', x: 350, y: 650, title: 'Intent Ledger', subtitle: 'All LLM-generated intents', type: 'storage', badge: 'Storage' },
+                { id: 'execlog', x: 750, y: 650, title: 'Execution Log', subtitle: 'All tool invocation results', type: 'storage', badge: 'Storage' },
+            ]
+        };
+
+        const connections = {
+            planning: [
+                { from: 'problem', to: 'strategy' },
+                { from: 'strategy', to: 'dag' },
+            ],
+            execution: [
+                { from: 'dag', to: 'decomposer' },
+                { from: 'decomposer', to: 'intent' },
+                { from: 'intent', to: 'policy' },
+                { from: 'policy', to: 'executor' },
+            ],
+            feedback: [
+                { from: 'executor', to: 'checker' },
+                { from: 'checker', to: 'gapdetect' },
+                { from: 'gapdetect', to: 'strategist2' },
+                { from: 'strategist2', to: 'decomposer', feedback: true },
+            ],
+            full: [
+                { from: 'problem', to: 'strategy' },
+                { from: 'strategy', to: 'dag' },
+                { from: 'dag', to: 'decomposer' },
+                { from: 'decomposer', to: 'intent' },
+                { from: 'intent', to: 'policy' },
+                { from: 'policy', to: 'executor' },
+                { from: 'executor', to: 'checker' },
+                { from: 'checker', to: 'gapdetect' },
+                { from: 'gapdetect', to: 'strategist2' },
+                { from: 'strategist2', to: 'decomposer', feedback: true },
+                { from: 'intent', to: 'intentlog' },
+                { from: 'executor', to: 'execlog' },
+            ]
+        };
+
+        let currentNodes = [];
+
+        function createNode(data) {
+            const node = document.createElement('div');
+            node.className = `node ${data.type}`;
+            node.id = `node-${data.id}`;
+            node.style.position = 'absolute';
+            node.style.left = `${data.x}px`;
+            node.style.top = `${data.y}px`;
+            node.style.transform = 'translate(-50%, -50%)';
+            
+            node.innerHTML = `
+                <div class="node-title">${data.title}</div>
+                <div class="node-subtitle">${data.subtitle}</div>
+                ${data.badge ? `<span class="node-badge badge-${data.badge.toLowerCase()}">${data.badge}</span>` : ''}
+            `;
+            
+            return node;
+        }
+
+        function drawConnection(from, to, feedback = false) {
+            const fromNode = document.getElementById(`node-${from}`);
+            const toNode = document.getElementById(`node-${to}`);
+            
+            if (!fromNode || !toNode) return;
+            
+            const fromRect = fromNode.getBoundingClientRect();
+            const toRect = toNode.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            const x1 = fromRect.right - canvasRect.left - 20;
+            const y1 = fromRect.top + fromRect.height / 2 - canvasRect.top;
+            const x2 = toRect.left - canvasRect.left + 20;
+            const y2 = toRect.top + toRect.height / 2 - canvasRect.top;
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            
+            // For feedback loops, create an arc that goes around
+            if (feedback) {
+                const midY = (y1 + y2) / 2;
+                const arcRadius = 150;
+                const d = `M ${x1} ${y1} 
+                          C ${x1 + arcRadius} ${y1}, ${x2 + arcRadius} ${midY}, ${x2} ${y2}`;
+                path.setAttribute('d', d);
+            } else {
+                // Regular smooth curve
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const controlX1 = x1 + dx * 0.5;
+                const controlX2 = x2 - dx * 0.5;
+                
+                const d = `M ${x1} ${y1} C ${controlX1} ${y1}, ${controlX2} ${y2}, ${x2} ${y2}`;
+                path.setAttribute('d', d);
+            }
+            
+            path.setAttribute('class', feedback ? 'connection feedback' : 'connection');
+            svg.appendChild(path);
+        }
+
+        function showStage(stage, btnElement) {
+            // Clear existing nodes
+            while (canvas.firstChild && canvas.firstChild !== svg) {
+                canvas.removeChild(canvas.firstChild);
+            }
+            while (svg.firstChild) {
+                svg.removeChild(svg.firstChild);
+            }
+            
+            // Update button states
+            document.querySelectorAll('.workflow-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (btnElement) {
+                btnElement.classList.add('active');
+            }
+            
+            // Render nodes based on stage
+            const stageNodes = stage === 'full' 
+                ? [...nodes.planning, ...nodes.execution, ...nodes.feedback, ...nodes.storage]
+                : stage === 'planning' 
+                    ? nodes.planning
+                    : stage === 'execution'
+                        ? [...nodes.planning, ...nodes.execution]
+                        : [...nodes.execution, ...nodes.feedback];
+            
+            stageNodes.forEach(nodeData => {
+                const node = createNode(nodeData);
+                canvas.insertBefore(node, svg);
+            });
+            
+            // Draw connections
+            setTimeout(() => {
+                connections[stage]?.forEach(conn => {
+                    drawConnection(conn.from, conn.to, conn.feedback);
+                });
+            }, 10);
+        }
+
+        // Initialize with full view
+        window.addEventListener('DOMContentLoaded', () => {
+            showStage('full', document.querySelector('.workflow-btn.active'));
+        });
+    </script>
+</body>
+</html>
