@@ -182,84 +182,80 @@ export const codeReviewWorkflow: WorkflowDefinition = {
   ],
 
   connections: {
-    'Webhook Trigger': {
+    'webhook-trigger': {
       main: [
         [
           {
-            node: 'Extract Input Data',
+            node: 'extract-input',
             type: 'main',
             index: 0,
           },
         ],
       ],
     },
-    'Extract Input Data': {
+    'extract-input': {
       main: [
         [
           {
-            node: 'Cursor Execute',
+            node: 'cursor-execute',
             type: 'main',
             index: 0,
           },
         ],
       ],
     },
-    'Cursor Execute': {
+    'cursor-execute': {
       main: [
         [
           {
-            node: 'Parse Response',
+            node: 'parse-response',
             type: 'main',
             index: 0,
           },
         ],
       ],
     },
-    'Parse Response': {
+    'parse-response': {
       main: [
         [
           {
-            node: 'Validate Output',
+            node: 'validate-output',
             type: 'main',
             index: 0,
           },
         ],
       ],
     },
-    'Validate Output': {
+    'validate-output': {
       main: [
         [
           {
-            node: 'Create GitHub Comment',
+            node: 'create-github-comment',
             type: 'main',
             index: 0,
           },
         ],
         [
           {
-            node: 'Success Response',
+            node: 'success-response',
+            type: 'main',
+            index: 0,
+          },
+        ],
+        [
+          {
+            node: 'error-response',
             type: 'main',
             index: 0,
           },
         ],
       ],
     },
-    'Create GitHub Comment': {
+    'create-github-comment': {
       main: [
         [
           {
-            node: 'Success Response',
-            type: 'main',
-            index: 0,
-          },
-        ],
-      ],
-    },
-    'Validate Output': {
-      main: [
-        [
-          {
-            node: 'Error Response',
+            node: 'success-response',
             type: 'main',
             index: 0,
           },

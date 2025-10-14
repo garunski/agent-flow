@@ -1,22 +1,9 @@
-# Taskfile.yml - Main entry point
+# Taskfile.yml - Consolidated Agent Flow Commands
 version: '3'
-
-# Include all task modules
-includes:
-  infrastructure: ./tasks/Taskfile.infrastructure.yml
-  development: ./tasks/Taskfile.development.yml
-  n8n: ./tasks/Taskfile.n8n.yml
-  workflows: ./tasks/Taskfile.workflows.yml
-  cursor: ./tasks/Taskfile.cursor.yml
-  management: ./tasks/Taskfile.management.yml
-  utilities: ./tasks/Taskfile.utilities.yml
 
 # Global environment variables
 env:
   N8N_BASIC_AUTH_USER: admin
-  N8N_BASIC_AUTH_PASSWORD: "{{.N8N_PASSWORD}}"
-  POSTGRES_PASSWORD: "{{.DB_PASSWORD}}"
-  CURSOR_API_KEY: "{{.CURSOR_API_KEY}}"
 
 # Global variables
 vars:
@@ -25,17 +12,367 @@ vars:
   PROJECT_ROOT: .
   CURSOR_MODEL: claude-4-sonnet
   CURSOR_TIMEOUT: 300
+  WORKFLOWS_DIR: ./src/workflow-definitions/workflows/definitions
+  ACTIVITIES_DIR: ./src/n8n-nodes/activities
 
-# Main task aliases for convenience
 tasks:
-  # Quick start
-  up: infrastructure:start
-  down: infrastructure:stop
+  # =============================================================================
+  # CORE TASKS (3 Most Important)
+  # =============================================================================
+  
+  # 1. CRITICAL: Start Development Environment
+  serve:
+    desc: "Start development environment with hot reload"
+    cmds:
+      - docker-compose up -d
+      - task: watch-workflows
+      - task: watch-activities
 
-  # Development workflow
-  serve: development:dev
+  # 2. HIGH: Execute AI Workflows
+  run-workflow:
+    desc: "Execute AI-powered workflows (code-review, refactoring, ai-testing, documentation, bug-fixes)"
+    cmds:
+      - >
+        curl -s -X POST "{{.N8N_URL}}/webhook/{{.WORKFLOW_NAME}}"
+        -H "Content-Type: application/json"
+        -H "X-N8N-API-KEY: {{.N8N_API_KEY}}"
+        -d '{"prompt": "{{.PROMPT}}", "projectPath": "{{.PROJECT_PATH}}"}'
+        | jq .
+    vars:
+      WORKFLOW_NAME:
+        sh: echo "{{.CLI_ARGS}}" | cut -d' ' -f1
+      PROMPT:
+        sh: echo "{{.CLI_ARGS}}" | cut -d' ' -f2-
+      PROJECT_PATH: "{{.PROJECT_ROOT}}"
 
-  # Common operations
-  build: infrastructure:setup
-  logs: n8n:logs
-  clean: management:clean
+  # 3. HIGH: System Health Monitoring
+  health:
+    desc: "Check system health and dependencies"
+    cmds:
+      - |
+        echo "🏥 System Health Check"
+        echo "===================="
+        
+        # Check Docker
+        echo "🐳 Checking Docker..."
+        if docker --version >/dev/null 2>&1; then
+          echo "✅ Docker is available"
+        else
+          echo "❌ Docker not available"
+          exit 1
+        fi
+        
+        # Check Docker Compose
+        echo "🐳 Checking Docker Compose..."
+        if docker-compose --version >/dev/null 2>&1; then
+          echo "✅ Docker Compose is available"
+        else
+          echo "❌ Docker Compose not available"
+          exit 1
+        fi
+        
+        # Check required tools
+        echo "🔧 Checking required tools..."
+        for tool in curl jq entr; do
+          if command -v $tool >/dev/null 2>&1; then
+            echo "✅ $tool is available"
+          else
+            echo "❌ $tool not available"
+            exit 1
+          fi
+        done
+        
+        # Check optional tools
+        echo "🔧 Checking optional tools..."
+        if command -v cursor-agent >/dev/null 2>&1; then
+          echo "✅ Cursor CLI is available"
+        else
+          echo "⚠️  Cursor CLI not available (optional)"
+        fi
+        
+        # Check services if running
+        echo "🌐 Checking services..."
+        if docker-compose ps | grep -q "Up"; then
+          echo "🔍 Checking N8N..."
+          if curl -f {{.N8N_URL}}/healthz >/dev/null 2>&1; then
+            echo "✅ N8N is healthy"
+          else
+            echo "❌ N8N not responding"
+          fi
+          
+          echo "🔍 Checking PostgreSQL..."
+          if docker-compose exec postgres pg_isready -U n8n >/dev/null 2>&1; then
+            echo "✅ PostgreSQL is healthy"
+          else
+            echo "❌ PostgreSQL not responding"
+          fi
+        else
+          echo "⚠️  Services not running (use 'task serve' to start)"
+        fi
+        
+        echo "✅ Health check complete"
+
+  # =============================================================================
+  # INFRASTRUCTURE TASKS
+  # =============================================================================
+  
+  up:
+    desc: "Start all services"
+    cmds:
+      - docker-compose up -d
+      - task: wait-for-services
+      - echo "🚀 Services started"
+
+  down:
+    desc: "Stop all services"
+    cmds:
+      - docker-compose down
+      - echo "⏹️ Services stopped"
+
+  restart:
+    desc: "Restart all services"
+    cmds:
+      - task: down
+      - task: up
+
+  status:
+    desc: "Show service status"
+    cmds:
+      - docker-compose ps
+
+  setup:
+    desc: "Complete setup: build, start services, and configure"
+    cmds:
+      - docker-compose build
+      - docker-compose up -d
+      - task: wait-for-services
+      - echo "✅ Setup complete! N8N available at {{.N8N_URL}}"
+
+  wait-for-services:
+    desc: "Wait for services to be ready"
+    internal: true
+    cmds:
+      - |
+        echo "⏳ Waiting for services..."
+        if timeout 60s bash -c 'until curl -f {{.N8N_URL}}/healthz >/dev/null 2>&1; do sleep 2; done'; then
+          echo "✅ Services ready!"
+        else
+          echo "❌ Services failed to start within 60 seconds"
+          echo "🔍 Checking service status..."
+          docker-compose ps
+          exit 1
+        fi
+
+  # =============================================================================
+  # DEVELOPMENT TASKS
+  # =============================================================================
+  
+  watch-workflows:
+    desc: "Watch workflow files for changes"
+    cmds:
+      - echo "👀 Watching workflow files..."
+      - find {{.WORKFLOWS_DIR}} -name "*.ts" -o -name "*.js" | entr -r task reload-workflows
+
+  watch-activities:
+    desc: "Watch activity files for changes"
+    cmds:
+      - echo "👀 Watching activity files..."
+      - find {{.ACTIVITIES_DIR}} -name "*.ts" -o -name "*.js" | entr -r task reload-activities
+
+  # =============================================================================
+  # WORKFLOW TASKS
+  # =============================================================================
+  
+  list-workflows:
+    desc: "List available workflows"
+    cmds:
+      - >
+        curl -s "{{.N8N_URL}}/rest/workflows"
+        -H "X-N8N-API-KEY: {{.N8N_API_KEY}}"
+        | jq -r '.data[].name'
+
+  # =============================================================================
+  # N8N TASKS
+  # =============================================================================
+  
+  ui:
+    desc: "Open N8N UI in browser"
+    cmds:
+      - echo "N8N UI {{.N8N_URL}}"
+
+  logs:
+    desc: "Show N8N logs"
+    cmds:
+      - docker-compose logs -f n8n
+
+  logs-db:
+    desc: "Show database logs"
+    cmds:
+      - docker-compose logs -f postgres
+
+  configure-n8n:
+    desc: "Configure N8N settings"
+    cmds:
+      - docker-compose exec n8n n8n configure
+
+  reload-workflows:
+    desc: "Reload workflows from code"
+    cmds:
+      - >
+        docker-compose exec n8n node -e "const { loadWorkflows } = require('./lib/workflow-loader');
+        loadWorkflows().then(() => console.log('✅ Workflows reloaded'));"
+
+  reload-activities:
+    desc: "Reload custom activities"
+    cmds:
+      - docker-compose restart n8n
+      - echo "🔄 Activities reloaded"
+
+  build-activities:
+    desc: "Build custom activities"
+    cmds:
+      - cd src/n8n-nodes/activities && npm run build
+
+  shell:
+    desc: "Open shell in N8N container"
+    cmds:
+      - docker-compose exec n8n bash
+
+  shell-db:
+    desc: "Open PostgreSQL shell"
+    cmds:
+      - docker-compose exec postgres psql -U n8n -d n8n
+
+  # =============================================================================
+  # CURSOR CLI TASKS
+  # =============================================================================
+  
+  cursor-execute:
+    desc: "Execute Cursor CLI command"
+    cmds:
+      - cd {{.PROJECT_ROOT}} && cursor-agent chat "{{.CLI_ARGS}}"
+    env:
+      CURSOR_MODEL: "{{.CURSOR_MODEL}}"
+      CURSOR_TIMEOUT: "{{.CURSOR_TIMEOUT}}"
+
+  cursor-interactive:
+    desc: "Start interactive Cursor CLI session"
+    cmds:
+      - cursor-agent
+
+  cursor-review:
+    desc: "Run code review with Cursor CLI"
+    cmds:
+      - cd {{.PROJECT_ROOT}} && cursor-agent chat "Review code for bugs and improvements"
+    env:
+      CURSOR_MODEL: "{{.CURSOR_MODEL}}"
+      CURSOR_TIMEOUT: "{{.CURSOR_TIMEOUT}}"
+
+  cursor-refactor:
+    desc: "Run refactoring with Cursor CLI"
+    cmds:
+      - cd {{.PROJECT_ROOT}} && cursor-agent chat "Refactor code following best practices"
+    env:
+      CURSOR_MODEL: "{{.CURSOR_MODEL}}"
+      CURSOR_TIMEOUT: "{{.CURSOR_TIMEOUT}}"
+
+  cursor-test:
+    desc: "Generate tests with Cursor CLI"
+    cmds:
+      - cd {{.PROJECT_ROOT}} && cursor-agent chat "Generate comprehensive unit tests"
+    env:
+      CURSOR_MODEL: "{{.CURSOR_MODEL}}"
+      CURSOR_TIMEOUT: "{{.CURSOR_TIMEOUT}}"
+
+  cursor-docs:
+    desc: "Update documentation with Cursor CLI"
+    cmds:
+      - cd {{.PROJECT_ROOT}} && cursor-agent chat "Update documentation with recent changes"
+    env:
+      CURSOR_MODEL: "{{.CURSOR_MODEL}}"
+      CURSOR_TIMEOUT: "{{.CURSOR_TIMEOUT}}"
+
+  # =============================================================================
+  # MANAGEMENT TASKS
+  # =============================================================================
+  
+  clean:
+    desc: "Clean all containers, volumes, and build cache"
+    cmds:
+      - docker-compose down -v --remove-orphans
+      - docker system prune -f
+      - echo "🧹 Cleaned up"
+
+  reset:
+    desc: "Reset everything to clean state"
+    cmds:
+      - task: down
+      - task: clean
+      - |
+        echo "🗑️ Removing local data directories..."
+        if [ -d ~/.n8n ]; then
+          rm -rf ~/.n8n
+          echo "✅ Removed ~/.n8n"
+        fi
+        if [ -d postgres_data ]; then
+          rm -rf postgres_data
+          echo "✅ Removed postgres_data"
+        fi
+        echo "🔄 Reset complete"
+
+  backup:
+    desc: "Backup workflows and data"
+    cmds:
+      - |
+        echo "💾 Creating backup..."
+        mkdir -p backups
+        BACKUP_TIME=$(date +%Y%m%d-%H%M%S)
+        
+        echo "📋 Exporting workflows..."
+        if docker-compose exec n8n n8n export:workflow --all --output=../backups/workflows-${BACKUP_TIME}.json; then
+          echo "✅ Workflows exported"
+        else
+          echo "❌ Failed to export workflows"
+          exit 1
+        fi
+        
+        echo "🗄️ Backing up N8N data..."
+        if docker run --rm -v n8n_n8n-data:/data -v $(pwd)/backups:/backup alpine tar czf /backup/n8n-data-${BACKUP_TIME}.tar.gz /data; then
+          echo "✅ N8N data backed up"
+        else
+          echo "❌ Failed to backup N8N data"
+          exit 1
+        fi
+        
+        echo "💾 Backup created successfully: workflows-${BACKUP_TIME}.json, n8n-data-${BACKUP_TIME}.tar.gz"
+
+  restore:
+    desc: "Restore from backup"
+    cmds:
+      - |
+        if [ -z "{{.BACKUP_FILE}}" ]; then
+          echo "❌ BACKUP_FILE variable is required"
+          echo "Usage: task restore BACKUP_FILE=backup-file-name.tar.gz"
+          exit 1
+        fi
+        
+        if [ ! -f "backups/{{.BACKUP_FILE}}" ]; then
+          echo "❌ Backup file backups/{{.BACKUP_FILE}} not found"
+          echo "Available backups:"
+          ls -la backups/ 2>/dev/null || echo "No backups directory found"
+          exit 1
+        fi
+        
+        echo "📥 Restoring from backup: {{.BACKUP_FILE}}"
+        task: down
+        
+        echo "🗄️ Restoring N8N data..."
+        if docker run --rm -v n8n_n8n-data:/data -v $(pwd)/backups:/backup alpine tar xzf /backup/{{.BACKUP_FILE}} -C /; then
+          echo "✅ N8N data restored"
+        else
+          echo "❌ Failed to restore N8N data"
+          exit 1
+        fi
+        
+        task: up
+        echo "📥 Restore complete"

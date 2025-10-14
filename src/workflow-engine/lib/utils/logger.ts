@@ -348,3 +348,4 @@ export class PerformanceMonitor {
  * Export logger instance for direct use
  */
 export const logger = Logger.getInstance();
+
