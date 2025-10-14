@@ -70,7 +70,7 @@ A **developer-assist system** that coordinates specialized agents to produce str
 flowchart TD
     A[Ticket / Issue] --> B[Planner: generate DAG plan]
     B --> C{Node ready?}
-    C -->|Yes| D[Retrieve evidence (code/docs/symbols)]
+    C -->|Yes| D[Retrieve evidence: code/docs/symbols]
     D --> E[Implementer proposes diffs]
     E --> F[Validator checks structure & safety]
     F --> G[Executor applies changes in branch]
