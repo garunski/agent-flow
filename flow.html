@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Orchestration Flow</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/rete/1.5.1/rete.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/rete-connection-plugin/0.9.0/connection-plugin.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/rete-area-plugin/0.2.1/area-plugin.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -29,61 +26,249 @@
         .controls {
             position: absolute;
             top: 20px;
-            left: 20px;
+            right: 20px;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            max-width: 300px;
+            width: 280px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
         }
 
-        .controls h2 {
-            margin-bottom: 15px;
-            font-size: 18px;
+        .controls.minimized {
+            width: 50px;
+            height: 50px;
+        }
+
+        .controls.minimized .controls-content {
+            display: none;
+        }
+
+        .controls.minimized .controls-header h2 {
+            display: none;
+        }
+
+        .controls-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .controls.minimized .controls-header {
+            padding: 0;
+            justify-content: center;
+            border-bottom: none;
+            height: 50px;
+            width: 50px;
+        }
+
+        .controls-header h2 {
+            margin: 0;
+            font-size: 16px;
             color: #333;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #667eea;
+            padding: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+
+        .hamburger {
+            width: 18px;
+            height: 2px;
+            background: #667eea;
+            margin: 2px 0;
+            transition: 0.3s;
+            border-radius: 1px;
+        }
+
+        .controls.minimized .hamburger:nth-child(1) {
+            transform: rotate(-45deg) translate(-4px, 4px);
+        }
+
+        .controls.minimized .hamburger:nth-child(2) {
+            opacity: 0;
+        }
+
+        .controls.minimized .hamburger:nth-child(3) {
+            transform: rotate(45deg) translate(-4px, -4px);
+        }
+
+        .controls.minimized .toggle-btn {
+            transform: rotate(180deg);
+        }
+
+        .controls-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 30px;
+        }
+
+        .nav-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .nav-section h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
         }
 
         .workflow-selector {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
         .workflow-btn {
-            padding: 12px 16px;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            background: #f3f4f6;
+            color: #374151;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .workflow-btn:hover {
+            background: #e5e7eb;
+            transform: translateX(2px);
+        }
+
+        .workflow-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .zoom-section {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .zoom-btn {
+            flex: 1;
+            height: 36px;
             border: none;
             border-radius: 8px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .workflow-btn:hover {
+        .zoom-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
-        .workflow-btn.active {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        .zoom-btn:active {
+            transform: translateY(0);
         }
 
-        #rete {
+        .legend-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        #canvas {
             width: 100%;
             height: 100%;
+            position: relative;
+            cursor: grab;
+            overflow: hidden;
+        }
+
+        #canvas.grabbing {
+            cursor: grabbing;
+        }
+
+        #viewport {
+            position: relative;
+            transform-origin: 0 0;
+            transition: transform 0.1s ease-out;
+        }
+
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2000px;
+            height: 1000px;
+            pointer-events: none;
+            z-index: 1;
         }
 
         .node {
             background: white;
-            border: 2px solid #ddd;
+            border: 3px solid #ddd;
             border-radius: 12px;
-            padding: 16px;
-            min-width: 200px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            position: relative;
+            padding: 20px;
+            min-width: 220px;
+            max-width: 220px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: absolute;
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+
+        .node:hover {
+            transform: scale(1.05);
+            z-index: 100;
         }
 
         .node.agent {
@@ -109,24 +294,23 @@
         .node-title {
             font-weight: 700;
             margin-bottom: 8px;
-            font-size: 14px;
+            font-size: 15px;
             color: #1f2937;
         }
 
         .node-subtitle {
-            font-size: 11px;
+            font-size: 12px;
             color: #6b7280;
-            margin-bottom: 12px;
             line-height: 1.4;
         }
 
         .node-badge {
             display: inline-block;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 4px;
             font-size: 10px;
             font-weight: 600;
-            margin-top: 8px;
+            margin-top: 10px;
         }
 
         .badge-llm {
@@ -144,49 +328,35 @@
             color: #92400e;
         }
 
-        .socket {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .socket.input {
-            background: #667eea;
-        }
-
-        .socket.output {
-            background: #f5576c;
-        }
-
-        .socket:hover {
-            transform: scale(1.3);
+        .badge-storage {
+            background: #d1fae5;
+            color: #065f46;
         }
 
         .connection {
             stroke: #667eea;
             stroke-width: 3;
             fill: none;
-            pointer-events: none;
+            stroke-linecap: round;
         }
 
         .connection.feedback {
             stroke: #fbbf24;
-            stroke-dasharray: 5, 5;
+            stroke-dasharray: 8, 5;
+            stroke-width: 3;
+        }
+
+        .connection.storage {
+            stroke: #10b981;
+            stroke-width: 2;
+            opacity: 0.6;
         }
 
         .legend {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
+            margin-top: 20px;
             padding: 16px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            background: #f8f9fa;
+            border-radius: 8px;
             font-size: 12px;
         }
 
@@ -195,232 +365,488 @@
             align-items: center;
             gap: 8px;
             margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+
+        .zoom-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                width: 220px;
+            }
+            
+            .controls.minimized {
+                width: 50px;
+            }
+            
+            .controls-header h2 {
+                font-size: 16px;
+            }
+            
+            .workflow-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
         }
 
         .legend-color {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             border-radius: 4px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .info-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            max-width: 350px;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .info-panel h3 {
-            margin-bottom: 12px;
-            font-size: 16px;
-            color: #667eea;
-        }
-
-        .info-panel ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .info-panel li {
-            padding-left: 20px;
-            position: relative;
-            margin-bottom: 8px;
-        }
-
-        .info-panel li:before {
-            content: "→";
-            position: absolute;
-            left: 0;
-            color: #667eea;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
     <div id="app">
-        <div class="controls">
-            <h2>Workflow Stages</h2>
-            <div class="workflow-selector">
-                <button class="workflow-btn active" onclick="showStage('full', this)">Complete Flow</button>
-                <button class="workflow-btn" onclick="showStage('planning', this)">Planning Layer</button>
-                <button class="workflow-btn" onclick="showStage('execution', this)">Execution Layer</button>
-                <button class="workflow-btn" onclick="showStage('feedback', this)">Feedback Loops</button>
+        <div class="controls minimized" id="controlsPanel">
+            <div class="controls-header" onclick="toggleControls()">
+                <h2>Workflow Stages</h2>
+                <button class="toggle-btn">
+                    <div class="hamburger"></div>
+                    <div class="hamburger"></div>
+                    <div class="hamburger"></div>
+                </button>
+            </div>
+            <div class="controls-content">
+                <div class="workflow-selector">
+                    <button class="workflow-btn active" onclick="showStage('full', this)">Complete Flow</button>
+                    <button class="workflow-btn" onclick="showStage('planning', this)">Planning Layer</button>
+                    <button class="workflow-btn" onclick="showStage('execution', this)">Execution Layer</button>
+                    <button class="workflow-btn" onclick="showStage('feedback', this)">Feedback Loops</button>
+                </div>
+                
+                <div class="zoom-section">
+                    <button class="zoom-btn" onclick="zoomIn()">+</button>
+                    <button class="zoom-btn" onclick="zoomOut()">−</button>
+                    <button class="zoom-btn" onclick="resetView()" style="font-size: 14px;">⟲</button>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #667eea;"></div>
+                        <span>Agent (LLM)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f5576c;"></div>
+                        <span>Tool Execution</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #fbbf24;"></div>
+                        <span>Validation/Policy</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>Storage/Logs</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="info-panel">
-            <h3>Architecture Highlights</h3>
-            <ul>
-                <li><strong>LLMs never execute tools</strong> - they only generate intents</li>
-                <li><strong>Policy Engine validates</strong> all actions before execution</li>
-                <li><strong>Minimal context per task</strong> - nodes receive only dependency outputs</li>
-                <li><strong>Immutable audit trail</strong> - DAG + Intent + Execution logs</li>
-                <li><strong>Iterative refinement</strong> - Checker detects gaps, Strategist revises</li>
-            </ul>
-        </div>
 
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background: #667eea;"></div>
-                <span>Agent (LLM Reasoning)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #f5576c;"></div>
-                <span>Tool Execution</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #fbbf24;"></div>
-                <span>Validation/Policy</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #10b981;"></div>
-                <span>Storage/Logs</span>
-            </div>
-        </div>
 
-        <div id="rete"></div>
+        <div id="canvas"></div>
     </div>
 
     <script>
-        // Simple workflow visualization using DOM manipulation
-        // (Rete.js CDN has compatibility issues, so building custom visualization)
-
-        const canvas = document.getElementById('rete');
+        const canvas = document.getElementById('canvas');
+        const viewport = document.createElement('div');
+        viewport.id = 'viewport';
+        canvas.appendChild(viewport);
+        
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.style.width = '100%';
-        svg.style.height = '100%';
-        svg.style.position = 'absolute';
-        svg.style.top = '0';
-        svg.style.left = '0';
-        svg.style.pointerEvents = 'none';
-        canvas.appendChild(svg);
+        viewport.appendChild(svg);
 
-        const nodes = {
-            planning: [
-                { id: 'problem', x: 150, y: 120, title: 'Problem Input', subtitle: 'User request in natural language', type: 'agent' },
-                { id: 'strategy', x: 450, y: 120, title: 'Strategy Generator', subtitle: 'LLM-1: Creates DAG plan', type: 'agent', badge: 'LLM' },
-                { id: 'dag', x: 750, y: 120, title: 'DAG Manifesto', subtitle: 'Immutable workflow blueprint', type: 'storage', badge: 'Storage' },
-            ],
-            execution: [
-                { id: 'decomposer', x: 200, y: 280, title: 'Task Decomposer', subtitle: 'LLM-2: Breaks into atomic steps', type: 'agent', badge: 'LLM' },
-                { id: 'intent', x: 500, y: 280, title: 'Intent Generation', subtitle: 'Structured tool proposals', type: 'agent' },
-                { id: 'policy', x: 800, y: 280, title: 'Policy Engine', subtitle: 'Validates intents (non-LLM)', type: 'validator', badge: 'Policy' },
-                { id: 'executor', x: 1100, y: 280, title: 'Tool Executor', subtitle: 'Executes validated actions', type: 'tool', badge: 'Engine' },
-            ],
-            feedback: [
-                { id: 'checker', x: 250, y: 480, title: 'Checker Agent', subtitle: 'Validates outputs, detects gaps', type: 'agent', badge: 'LLM' },
-                { id: 'gapdetect', x: 600, y: 480, title: 'Gap Detection', subtitle: 'Missing tests, docs, dependencies', type: 'validator' },
-                { id: 'strategist2', x: 950, y: 480, title: 'Strategist Revision', subtitle: 'Updates plan based on feedback', type: 'agent', badge: 'LLM' },
-            ],
-            storage: [
-                { id: 'intentlog', x: 350, y: 650, title: 'Intent Ledger', subtitle: 'All LLM-generated intents', type: 'storage', badge: 'Storage' },
-                { id: 'execlog', x: 750, y: 650, title: 'Execution Log', subtitle: 'All tool invocation results', type: 'storage', badge: 'Storage' },
-            ]
+        // Pan and zoom state
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+
+        // Node dragging state
+        let isDraggingNode = false;
+        let draggedNode = null;
+        let nodeStartX = 0;
+        let nodeStartY = 0;
+
+        // Touch handling
+        let lastTouchDistance = 0;
+
+        // Define all nodes with proper spacing
+        const allNodes = {
+            // Row 1: Planning
+            problem: { x: 380, y: 100, title: 'Problem Input', subtitle: 'User request in natural language', type: 'agent' },
+            strategy: { x: 660, y: 100, title: 'Strategy Generator', subtitle: 'LLM-1: Creates DAG plan', type: 'agent', badge: 'LLM' },
+            dag: { x: 940, y: 100, title: 'DAG Manifesto', subtitle: 'Immutable workflow blueprint', type: 'storage', badge: 'Storage' },
+            
+            // Row 2: Execution
+            decomposer: { x: 380, y: 280, title: 'Task Decomposer', subtitle: 'LLM-2: Breaks into atomic steps', type: 'agent', badge: 'LLM' },
+            intent: { x: 660, y: 280, title: 'Intent Generation', subtitle: 'Structured tool proposals', type: 'agent' },
+            policy: { x: 940, y: 280, title: 'Policy Engine', subtitle: 'Validates intents (non-LLM)', type: 'validator', badge: 'Policy' },
+            executor: { x: 1220, y: 280, title: 'Tool Executor', subtitle: 'Executes validated actions', type: 'tool', badge: 'Engine' },
+            
+            // Row 3: Feedback
+            checker: { x: 520, y: 480, title: 'Checker Agent', subtitle: 'Validates outputs, detects gaps', type: 'agent', badge: 'LLM' },
+            gapdetect: { x: 800, y: 480, title: 'Gap Detection', subtitle: 'Missing tests, docs, dependencies', type: 'validator' },
+            strategist: { x: 1080, y: 480, title: 'Strategist Revision', subtitle: 'Updates plan based on feedback', type: 'agent', badge: 'LLM' },
+            
+            // Row 4: Storage
+            intentlog: { x: 520, y: 680, title: 'Intent Ledger', subtitle: 'All LLM-generated intents', type: 'storage', badge: 'Storage' },
+            execlog: { x: 940, y: 680, title: 'Execution Log', subtitle: 'All tool invocation results', type: 'storage', badge: 'Storage' },
         };
 
-        const connections = {
-            planning: [
-                { from: 'problem', to: 'strategy' },
-                { from: 'strategy', to: 'dag' },
-            ],
-            execution: [
-                { from: 'dag', to: 'decomposer' },
-                { from: 'decomposer', to: 'intent' },
-                { from: 'intent', to: 'policy' },
-                { from: 'policy', to: 'executor' },
-            ],
-            feedback: [
-                { from: 'executor', to: 'checker' },
-                { from: 'checker', to: 'gapdetect' },
-                { from: 'gapdetect', to: 'strategist2' },
-                { from: 'strategist2', to: 'decomposer', feedback: true },
-            ],
-            full: [
-                { from: 'problem', to: 'strategy' },
-                { from: 'strategy', to: 'dag' },
-                { from: 'dag', to: 'decomposer' },
-                { from: 'decomposer', to: 'intent' },
-                { from: 'intent', to: 'policy' },
-                { from: 'policy', to: 'executor' },
-                { from: 'executor', to: 'checker' },
-                { from: 'checker', to: 'gapdetect' },
-                { from: 'gapdetect', to: 'strategist2' },
-                { from: 'strategist2', to: 'decomposer', feedback: true },
-                { from: 'intent', to: 'intentlog' },
-                { from: 'executor', to: 'execlog' },
-            ]
+        const stages = {
+            planning: {
+                nodes: ['problem', 'strategy', 'dag'],
+                connections: [
+                    { from: 'problem', to: 'strategy' },
+                    { from: 'strategy', to: 'dag' }
+                ]
+            },
+            execution: {
+                nodes: ['problem', 'strategy', 'dag', 'decomposer', 'intent', 'policy', 'executor'],
+                connections: [
+                    { from: 'problem', to: 'strategy' },
+                    { from: 'strategy', to: 'dag' },
+                    { from: 'dag', to: 'decomposer' },
+                    { from: 'decomposer', to: 'intent' },
+                    { from: 'intent', to: 'policy' },
+                    { from: 'policy', to: 'executor' }
+                ]
+            },
+            feedback: {
+                nodes: ['decomposer', 'intent', 'policy', 'executor', 'checker', 'gapdetect', 'strategist'],
+                connections: [
+                    { from: 'decomposer', to: 'intent' },
+                    { from: 'intent', to: 'policy' },
+                    { from: 'policy', to: 'executor' },
+                    { from: 'executor', to: 'checker' },
+                    { from: 'checker', to: 'gapdetect' },
+                    { from: 'gapdetect', to: 'strategist' },
+                    { from: 'strategist', to: 'decomposer', feedback: true }
+                ]
+            },
+            full: {
+                nodes: Object.keys(allNodes),
+                connections: [
+                    { from: 'problem', to: 'strategy' },
+                    { from: 'strategy', to: 'dag' },
+                    { from: 'dag', to: 'decomposer' },
+                    { from: 'decomposer', to: 'intent' },
+                    { from: 'intent', to: 'policy' },
+                    { from: 'policy', to: 'executor' },
+                    { from: 'executor', to: 'checker' },
+                    { from: 'checker', to: 'gapdetect' },
+                    { from: 'gapdetect', to: 'strategist' },
+                    { from: 'strategist', to: 'decomposer', feedback: true },
+                    { from: 'intent', to: 'intentlog', storage: true },
+                    { from: 'executor', to: 'execlog', storage: true }
+                ]
+            }
         };
 
-        let currentNodes = [];
-
-        function createNode(data) {
+        function createNode(id, data) {
             const node = document.createElement('div');
             node.className = `node ${data.type}`;
-            node.id = `node-${data.id}`;
-            node.style.position = 'absolute';
+            node.id = `node-${id}`;
             node.style.left = `${data.x}px`;
             node.style.top = `${data.y}px`;
             node.style.transform = 'translate(-50%, -50%)';
+            node.style.cursor = 'grab';
             
             node.innerHTML = `
                 <div class="node-title">${data.title}</div>
                 <div class="node-subtitle">${data.subtitle}</div>
-                ${data.badge ? `<span class="node-badge badge-${data.badge.toLowerCase()}">${data.badge}</span>` : ''}
+                ${data.badge ? `<div class="node-badge badge-${data.badge.toLowerCase()}">${data.badge}</div>` : ''}
             `;
+            
+            // Add drag functionality
+            node.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                isDraggingNode = true;
+                draggedNode = node;
+                node.style.cursor = 'grabbing';
+                
+                // Store the offset between mouse and node center in world coordinates
+                const rect = node.getBoundingClientRect();
+                const viewportRect = viewport.getBoundingClientRect();
+                const nodeCenterX = (rect.left + rect.width/2 - viewportRect.left - translateX) / scale;
+                const nodeCenterY = (rect.top + rect.height/2 - viewportRect.top - translateY) / scale;
+                const mouseWorldX = (e.clientX - viewportRect.left - translateX) / scale;
+                const mouseWorldY = (e.clientY - viewportRect.top - translateY) / scale;
+                
+                nodeStartX = nodeCenterX - mouseWorldX;
+                nodeStartY = nodeCenterY - mouseWorldY;
+            });
+            
+            node.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                if (e.touches.length === 1) {
+                    isDraggingNode = true;
+                    draggedNode = node;
+                    node.style.cursor = 'grabbing';
+                    
+                    // Store the offset between touch and node center in world coordinates
+                    const rect = node.getBoundingClientRect();
+                    const viewportRect = viewport.getBoundingClientRect();
+                    const nodeCenterX = (rect.left + rect.width/2 - viewportRect.left - translateX) / scale;
+                    const nodeCenterY = (rect.top + rect.height/2 - viewportRect.top - translateY) / scale;
+                    const touchWorldX = (e.touches[0].clientX - viewportRect.left - translateX) / scale;
+                    const touchWorldY = (e.touches[0].clientY - viewportRect.top - translateY) / scale;
+                    
+                    nodeStartX = nodeCenterX - touchWorldX;
+                    nodeStartY = nodeCenterY - touchWorldY;
+                }
+            });
             
             return node;
         }
 
-        function drawConnection(from, to, feedback = false) {
-            const fromNode = document.getElementById(`node-${from}`);
-            const toNode = document.getElementById(`node-${to}`);
+        function drawConnection(fromId, toId, isFeedback = false, isStorage = false) {
+            const fromNode = document.getElementById(`node-${fromId}`);
+            const toNode = document.getElementById(`node-${toId}`);
             
             if (!fromNode || !toNode) return;
             
             const fromRect = fromNode.getBoundingClientRect();
             const toRect = toNode.getBoundingClientRect();
-            const canvasRect = canvas.getBoundingClientRect();
+            const viewportRect = viewport.getBoundingClientRect();
             
-            const x1 = fromRect.right - canvasRect.left - 20;
-            const y1 = fromRect.top + fromRect.height / 2 - canvasRect.top;
-            const x2 = toRect.left - canvasRect.left + 20;
-            const y2 = toRect.top + toRect.height / 2 - canvasRect.top;
+            // Calculate connection points relative to viewport
+            let x1, y1, x2, y2;
+            
+            if (isFeedback) {
+                x1 = fromRect.left + fromRect.width / 2 - viewportRect.left;
+                y1 = fromRect.bottom - viewportRect.top;
+                x2 = toRect.left + toRect.width / 2 - viewportRect.left;
+                y2 = toRect.top - viewportRect.top;
+            } else if (isStorage) {
+                x1 = fromRect.left + fromRect.width / 2 - viewportRect.left;
+                y1 = fromRect.bottom - viewportRect.top;
+                x2 = toRect.left + toRect.width / 2 - viewportRect.left;
+                y2 = toRect.top - viewportRect.top;
+            } else {
+                x1 = fromRect.right - viewportRect.left;
+                y1 = fromRect.top + fromRect.height / 2 - viewportRect.top;
+                x2 = toRect.left - viewportRect.left;
+                y2 = toRect.top + toRect.height / 2 - viewportRect.top;
+            }
             
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             
-            // For feedback loops, create an arc that goes around
-            if (feedback) {
-                const midY = (y1 + y2) / 2;
-                const arcRadius = 150;
+            if (isFeedback) {
+                const arcOffset = 200;
                 const d = `M ${x1} ${y1} 
-                          C ${x1 + arcRadius} ${y1}, ${x2 + arcRadius} ${midY}, ${x2} ${y2}`;
+                          C ${x1 - arcOffset} ${y1 + 50}, 
+                            ${x2 - arcOffset} ${y2 - 50}, 
+                            ${x2} ${y2}`;
                 path.setAttribute('d', d);
             } else {
-                // Regular smooth curve
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const controlX1 = x1 + dx * 0.5;
-                const controlX2 = x2 - dx * 0.5;
+                const dx = Math.abs(x2 - x1);
+                const offset = Math.min(dx * 0.5, 100);
                 
-                const d = `M ${x1} ${y1} C ${controlX1} ${y1}, ${controlX2} ${y2}, ${x2} ${y2}`;
+                const d = `M ${x1} ${y1} 
+                          C ${x1 + offset} ${y1}, 
+                            ${x2 - offset} ${y2}, 
+                            ${x2} ${y2}`;
                 path.setAttribute('d', d);
             }
             
-            path.setAttribute('class', feedback ? 'connection feedback' : 'connection');
+            const className = isFeedback ? 'connection feedback' : isStorage ? 'connection storage' : 'connection';
+            path.setAttribute('class', className);
             svg.appendChild(path);
         }
 
-        function showStage(stage, btnElement) {
-            // Clear existing nodes
-            while (canvas.firstChild && canvas.firstChild !== svg) {
-                canvas.removeChild(canvas.firstChild);
+        function updateTransform() {
+            viewport.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        }
+
+        function redrawConnections() {
+            // Clear existing connections
+            while (svg.firstChild) {
+                svg.removeChild(svg.firstChild);
             }
+            
+            // Redraw all connections for current stage
+            const activeStage = document.querySelector('.workflow-btn.active');
+            if (activeStage) {
+                const stageName = activeStage.textContent.trim().toLowerCase().replace(/\s+/g, '');
+                const stageMap = {
+                    'completeflow': 'full',
+                    'planninglayer': 'planning',
+                    'executionlayer': 'execution',
+                    'feedbackloops': 'feedback'
+                };
+                const stageKey = stageMap[stageName] || 'full';
+                const stage = stages[stageKey];
+                
+                if (stage) {
+                    stage.connections.forEach(conn => {
+                        drawConnection(conn.from, conn.to, conn.feedback, conn.storage);
+                    });
+                }
+            }
+        }
+
+        function toggleControls() {
+            document.getElementById('controlsPanel').classList.toggle('minimized');
+        }
+
+
+        function zoomIn() {
+            scale = Math.min(scale * 1.2, 3);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            scale = Math.max(scale / 1.2, 0.3);
+            updateTransform();
+        }
+
+        function resetView() {
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        }
+
+        // Mouse pan
+        canvas.addEventListener('mousedown', (e) => {
+            if (!isDraggingNode) {
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                canvas.classList.add('grabbing');
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDraggingNode && draggedNode) {
+                // Handle node dragging
+                const viewportRect = viewport.getBoundingClientRect();
+                // Convert screen coordinates to world coordinates and apply offset
+                const mouseWorldX = (e.clientX - viewportRect.left - translateX) / scale;
+                const mouseWorldY = (e.clientY - viewportRect.top - translateY) / scale;
+                
+                draggedNode.style.left = `${mouseWorldX + nodeStartX}px`;
+                draggedNode.style.top = `${mouseWorldY + nodeStartY}px`;
+                
+                // Redraw connections
+                redrawConnections();
+            } else if (isDragging) {
+                // Handle canvas panning
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (isDraggingNode) {
+                isDraggingNode = false;
+                if (draggedNode) {
+                    draggedNode.style.cursor = 'grab';
+                    draggedNode = null;
+                }
+            }
+            isDragging = false;
+            canvas.classList.remove('grabbing');
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            canvas.classList.remove('grabbing');
+        });
+
+        // Mouse wheel zoom
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale = Math.max(0.3, Math.min(3, scale * delta));
+            updateTransform();
+        }, { passive: false });
+
+        // Touch pan
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1 && !isDraggingNode) {
+                isDragging = true;
+                startX = e.touches[0].clientX - translateX;
+                startY = e.touches[0].clientY - translateY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                isDraggingNode = false;
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            
+            if (e.touches.length === 1 && isDraggingNode && draggedNode) {
+                // Handle node dragging
+                const viewportRect = viewport.getBoundingClientRect();
+                // Convert screen coordinates to world coordinates and apply offset
+                const touchWorldX = (e.touches[0].clientX - viewportRect.left - translateX) / scale;
+                const touchWorldY = (e.touches[0].clientY - viewportRect.top - translateY) / scale;
+                
+                draggedNode.style.left = `${touchWorldX + nodeStartX}px`;
+                draggedNode.style.top = `${touchWorldY + nodeStartY}px`;
+                
+                // Redraw connections
+                redrawConnections();
+            } else if (e.touches.length === 1 && isDragging) {
+                // Handle canvas panning
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateTransform();
+            } else if (e.touches.length === 2) {
+                // Handle pinch zoom
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (lastTouchDistance > 0) {
+                    const delta = distance / lastTouchDistance;
+                    scale = Math.max(0.3, Math.min(3, scale * delta));
+                    updateTransform();
+                }
+                
+                lastTouchDistance = distance;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            if (isDraggingNode) {
+                isDraggingNode = false;
+                if (draggedNode) {
+                    draggedNode.style.cursor = 'grab';
+                    draggedNode = null;
+                }
+            }
+            isDragging = false;
+            lastTouchDistance = 0;
+        });
+
+        function showStage(stageName, btnElement) {
+            // Clear viewport
+            while (viewport.firstChild) {
+                viewport.removeChild(viewport.firstChild);
+            }
+            viewport.appendChild(svg);
+            
             while (svg.firstChild) {
                 svg.removeChild(svg.firstChild);
             }
@@ -433,29 +859,26 @@
                 btnElement.classList.add('active');
             }
             
-            // Render nodes based on stage
-            const stageNodes = stage === 'full' 
-                ? [...nodes.planning, ...nodes.execution, ...nodes.feedback, ...nodes.storage]
-                : stage === 'planning' 
-                    ? nodes.planning
-                    : stage === 'execution'
-                        ? [...nodes.planning, ...nodes.execution]
-                        : [...nodes.execution, ...nodes.feedback];
+            const stage = stages[stageName];
             
-            stageNodes.forEach(nodeData => {
-                const node = createNode(nodeData);
-                canvas.insertBefore(node, svg);
+            // Create nodes
+            stage.nodes.forEach(nodeId => {
+                const node = createNode(nodeId, allNodes[nodeId]);
+                viewport.appendChild(node);
             });
             
-            // Draw connections
+            // Draw connections after nodes are rendered
             setTimeout(() => {
-                connections[stage]?.forEach(conn => {
-                    drawConnection(conn.from, conn.to, conn.feedback);
+                stage.connections.forEach(conn => {
+                    drawConnection(conn.from, conn.to, conn.feedback, conn.storage);
                 });
-            }, 10);
+            }, 50);
+            
+            // Reset view when changing stages
+            resetView();
         }
 
-        // Initialize with full view
+        // Initialize
         window.addEventListener('DOMContentLoaded', () => {
             showStage('full', document.querySelector('.workflow-btn.active'));
         });
